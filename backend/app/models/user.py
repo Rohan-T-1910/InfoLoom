@@ -1,5 +1,7 @@
+from datetime import datetime
 from sqlalchemy.orm import Mapped, mapped_column
-from sqlalchemy import Integer, String
+from sqlalchemy import DateTime, Integer, String, func
+
 
 from app.database.base import Base
 
@@ -22,7 +24,7 @@ class User(Base):
         unique=True
     )
 
-    password: Mapped[str] = mapped_column(
+    password_hash: Mapped[str] = mapped_column(
         String(255),
         nullable=False
     )
@@ -31,4 +33,10 @@ class User(Base):
         String(20),
         nullable=False,
         default="User"
+    )
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
     )

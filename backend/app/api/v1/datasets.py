@@ -1,13 +1,19 @@
-from typing import Annotated
+from typing import Annotated, Optional
 from fastapi import APIRouter, Depends, File, Query, UploadFile, status
 from sqlalchemy.orm import Session
 from app.api.dependencies import get_current_user, get_db
 from app.models.user import User
+from app.schemas.cleaning import (
+    CleaningConfig,
+    CleaningReportResponse,
+    ValidationReportResponse,
+)
 from app.schemas.dataset import (
     DatasetDetailResponse,
     DatasetListResponse,
     DatasetPreviewResponse,
 )
+from app.services.cleaning_service import cleaning_service
 from app.services.dataset_service import dataset_service
 
 router = APIRouter(prefix="/datasets", tags=["Datasets"])
@@ -63,7 +69,7 @@ def get_dataset(
 @router.get(
     "/{dataset_id}/preview",
     response_model=DatasetPreviewResponse,
-    summary="Preview sample rows from the dataset"
+    summary="Preview sample rows from the raw dataset"
 )
 def preview_dataset(
     dataset_id: int,
@@ -86,3 +92,82 @@ def delete_dataset(
 ):
     """Permanently delete a dataset and its stored CSV file."""
     dataset_service.delete_dataset(db=db, dataset_id=dataset_id, user_id=current_user.id)
+
+@router.post(
+    "/{dataset_id}/validate",
+    response_model=ValidationReportResponse,
+    summary="Validate dataset and generate statistical quality report"
+)
+def validate_dataset(
+    dataset_id: int,
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[Session, Depends(get_db)],
+):
+    """
+    Runs comprehensive data validation:
+    - Schema & fine-grained data type detection
+    - Descriptive statistics (mean, median, std, percentiles)
+    - Missing-value analysis and severity categorization
+    - Duplicate detection count and percentage
+    - Outlier detection via IQR and Z-Score algorithms
+    """
+    return cleaning_service.validate_dataset(db=db, dataset_id=dataset_id, user_id=current_user.id)
+
+@router.post(
+    "/{dataset_id}/clean",
+    response_model=CleaningReportResponse,
+    summary="Run automatic cleaning pipeline on dataset"
+)
+def clean_dataset(
+    dataset_id: int,
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[Session, Depends(get_db)],
+    config: Optional[CleaningConfig] = None,
+):
+    """
+    Executes swappable cleaning pipeline:
+    - Deduplication
+    - Type coercion (formats, whitespace, booleans, dates)
+    - Missing value imputation (median/mean/mode/constant/drop)
+    - Outlier handling (clipping or removal)
+    - Persists audit report to database and saves cleaned CSV artifact
+    """
+    return cleaning_service.clean_dataset(
+        db=db,
+        dataset_id=dataset_id,
+        user_id=current_user.id,
+        config=config,
+    )
+
+@router.get(
+    "/{dataset_id}/cleaning-report",
+    response_model=CleaningReportResponse,
+    summary="Get latest persisted cleaning report for dataset"
+)
+def get_cleaning_report(
+    dataset_id: int,
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[Session, Depends(get_db)],
+):
+    """Fetch the latest persisted cleaning report and transformation summary."""
+    return cleaning_service.get_latest_report(db=db, dataset_id=dataset_id, user_id=current_user.id)
+
+@router.get(
+    "/{dataset_id}/cleaned-preview",
+    response_model=DatasetPreviewResponse,
+    summary="Preview sample rows from the cleaned dataset"
+)
+def preview_cleaned_dataset(
+    dataset_id: int,
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[Session, Depends(get_db)],
+    limit: Annotated[int, Query(ge=1, le=100, description="Number of preview rows")] = 10,
+):
+    """Retrieve sample rows from the cleaned CSV dataset."""
+    return cleaning_service.get_cleaned_preview(
+        db=db,
+        dataset_id=dataset_id,
+        user_id=current_user.id,
+        limit=limit,
+    )
+

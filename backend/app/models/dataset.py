@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import Any, Optional
-from sqlalchemy import BigInteger, DateTime, ForeignKey, Integer, String, JSON, func
+from sqlalchemy import BigInteger, Boolean, DateTime, ForeignKey, Integer, String, JSON, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.database.base import Base
 
@@ -51,6 +51,15 @@ class Dataset(Base):
         nullable=False,
         default="ready"
     )
+    cleaned_file_path: Mapped[Optional[str]] = mapped_column(
+        String(500),
+        nullable=True
+    )
+    has_cleaned: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        default=False
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
@@ -64,3 +73,5 @@ class Dataset(Base):
     )
 
     owner = relationship("User", back_populates="datasets")
+    cleaning_reports = relationship("CleaningReport", back_populates="dataset", cascade="all, delete-orphan", order_by="desc(CleaningReport.created_at)")
+

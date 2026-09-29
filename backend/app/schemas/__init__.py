@@ -12,6 +12,11 @@ from app.schemas.dataset import (
     DatasetListResponse,
     DatasetPreviewResponse,
 )
+from app.schemas.cleaning import (
+    ValidationReportResponse,
+    CleaningConfig,
+    CleaningReportResponse,
+)
 
 __all__ = [
     "UserBase",
@@ -24,4 +29,8 @@ __all__ = [
     "DatasetDetailResponse",
     "DatasetListResponse",
     "DatasetPreviewResponse",
+    "ValidationReportResponse",
+    "CleaningConfig",
+    "CleaningReportResponse",
 ]
+

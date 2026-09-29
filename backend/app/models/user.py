@@ -1,5 +1,5 @@
 from datetime import datetime
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import DateTime, Integer, String, func
 
 
@@ -40,3 +40,5 @@ class User(Base):
         nullable=False,
         server_default=func.now(),
     )
+
+    datasets = relationship("Dataset", back_populates="owner", cascade="all, delete-orphan")

@@ -1,0 +1,66 @@
+from datetime import datetime
+from typing import Any, Optional
+from sqlalchemy import BigInteger, DateTime, ForeignKey, Integer, String, JSON, func
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+from app.database.base import Base
+
+class Dataset(Base):
+    __tablename__ = "datasets"
+
+    id: Mapped[int] = mapped_column(
+        Integer,
+        primary_key=True,
+        index=True
+    )
+    user_id: Mapped[int] = mapped_column(
+        Integer,
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True
+    )
+    filename: Mapped[str] = mapped_column(
+        String(255),
+        nullable=False
+    )
+    original_filename: Mapped[str] = mapped_column(
+        String(255),
+        nullable=False
+    )
+    file_path: Mapped[str] = mapped_column(
+        String(500),
+        nullable=False
+    )
+    file_size_bytes: Mapped[int] = mapped_column(
+        BigInteger,
+        nullable=False
+    )
+    row_count: Mapped[Optional[int]] = mapped_column(
+        Integer,
+        nullable=True
+    )
+    column_count: Mapped[Optional[int]] = mapped_column(
+        Integer,
+        nullable=True
+    )
+    columns_metadata: Mapped[Optional[dict[str, Any]]] = mapped_column(
+        JSON,
+        nullable=True
+    )
+    status: Mapped[str] = mapped_column(
+        String(50),
+        nullable=False,
+        default="ready"
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+        onupdate=func.now()
+    )
+
+    owner = relationship("User", back_populates="datasets")

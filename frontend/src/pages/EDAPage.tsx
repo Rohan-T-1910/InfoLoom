@@ -21,6 +21,7 @@ import {
   AlertTriangle,
   ArrowRight,
   Filter,
+  Cpu,
 } from 'lucide-react';
 
 export const EDAPage: React.FC = () => {
@@ -157,16 +158,24 @@ export const EDAPage: React.FC = () => {
 
           {/* Force Refresh Button */}
           {effectiveId && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => refreshMutation.mutate()}
-              disabled={refreshMutation.isPending || isFetching}
-              className="text-xs h-9"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 mr-1.5 ${refreshMutation.isPending || isFetching ? 'animate-spin' : ''}`} />
-              Recompute EDA
-            </Button>
+            <div className="flex items-center gap-2">
+              <Link to={`/models?datasetId=${effectiveId}`}>
+                <Button variant="glow" size="sm" className="text-xs h-9">
+                  <Cpu className="w-3.5 h-3.5 mr-1.5" />
+                  Train ML Models
+                </Button>
+              </Link>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => refreshMutation.mutate()}
+                disabled={refreshMutation.isPending || isFetching}
+                className="text-xs h-9"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 mr-1.5 ${refreshMutation.isPending || isFetching ? 'animate-spin' : ''}`} />
+                Recompute EDA
+              </Button>
+            </div>
           )}
         </div>
       </div>

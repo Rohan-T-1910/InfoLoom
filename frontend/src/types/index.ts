@@ -157,3 +157,93 @@ export interface CleaningReportResponse {
   status: string;
   created_at: string;
 }
+
+// ==========================================
+// Phase 4: Machine Learning Types
+// ==========================================
+
+export type MLTaskType = 'regression' | 'classification';
+export type MLAlgorithm =
+  | 'linear_regression'
+  | 'logistic_regression'
+  | 'random_forest'
+  | 'xgboost';
+
+export interface MLTargetInspectionResponse {
+  target_column: string;
+  inferred_task_type: MLTaskType;
+  unique_count: number;
+  sample_values: any[];
+  candidate_features: string[];
+  is_supported: boolean;
+  warning?: string | null;
+}
+
+export interface MLTrainRequest {
+  task_type: MLTaskType;
+  target_column: string;
+  feature_columns?: string[];
+  test_size?: number;
+  cv_folds?: number;
+  algorithms?: string[];
+  use_cleaned?: boolean;
+}
+
+export interface MLModelLeaderboardItem {
+  id: number;
+  algorithm: string;
+  algorithm_name: string;
+  task_type: MLTaskType;
+  test_metrics: Record<string, number | null>;
+  cv_mean: number | null;
+  cv_std: number | null;
+  primary_metric_name: string;
+  primary_metric_value: number | null;
+  status: string;
+  error_message?: string | null;
+  created_at: string;
+}
+
+export interface MLJob {
+  id: number;
+  dataset_id: number;
+  user_id: number;
+  task_type: MLTaskType;
+  target_column: string;
+  feature_columns: string[];
+  test_size: number;
+  use_cleaned: boolean;
+  status: 'pending' | 'running' | 'completed' | 'failed';
+  error_message?: string | null;
+  leaderboard?: MLModelLeaderboardItem[];
+  best_model_id?: number | null;
+  created_at: string;
+  completed_at?: string | null;
+}
+
+export interface MLModelDetail extends MLModelLeaderboardItem {
+  job_id: number;
+  dataset_id: number;
+  features_numeric: string[];
+  features_categorical: string[];
+  target_column: string;
+  target_classes?: string[] | null;
+  cv_scores?: number[] | null;
+}
+
+export interface MLPredictRequest {
+  inputs: Record<string, any>[];
+}
+
+export interface MLPredictionItem {
+  prediction: any;
+  probabilities?: Record<string, number> | null;
+}
+
+export interface MLPredictResponse {
+  model_id: number;
+  algorithm: string;
+  task_type: MLTaskType;
+  predictions: MLPredictionItem[];
+}
+

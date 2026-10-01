@@ -8,6 +8,7 @@ class Settings(BaseSettings):
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKENS_EXPIRE_MINUTES: int = 30
     UPLOAD_DIR: str = "uploads"
+    MODELS_DIR: str = "models_storage"
     MAX_UPLOAD_SIZE_BYTES: int = 100 * 1024 * 1024  # 100 MB max file size
 
     model_config = SettingsConfigDict(

@@ -31,6 +31,16 @@ from app.schemas.eda import (
     EDARequestConfig,
 )
 
+from app.schemas.ml import (
+    MLTrainRequest,
+    MLJobResponse,
+    MLModelLeaderboardItem,
+    MLModelDetailResponse,
+    MLPredictRequest,
+    MLPredictResponse,
+    MLTargetInspectionResponse,
+)
+
 __all__ = [
     "UserBase",
     "UserCreate",
@@ -56,5 +66,12 @@ __all__ = [
     "FeatureImportanceItem",
     "EDAResponse",
     "EDARequestConfig",
+    "MLTrainRequest",
+    "MLJobResponse",
+    "MLModelLeaderboardItem",
+    "MLModelDetailResponse",
+    "MLPredictRequest",
+    "MLPredictResponse",
+    "MLTargetInspectionResponse",
 ]
 

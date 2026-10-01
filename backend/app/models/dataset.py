@@ -74,4 +74,5 @@ class Dataset(Base):
 
     owner = relationship("User", back_populates="datasets")
     cleaning_reports = relationship("CleaningReport", back_populates="dataset", cascade="all, delete-orphan", order_by="desc(CleaningReport.created_at)")
+    eda_reports = relationship("EDAReport", back_populates="dataset", cascade="all, delete-orphan", order_by="desc(EDAReport.created_at)")
 

@@ -1,0 +1,115 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@font-face {
+  font-family: 'Sergena';
+  src: url('/fonts/Surgena%20Personal%20use%20only.ttf') format('truetype'),
+       url('/fonts/Surgena Personal use only.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+.font-sergena {
+  font-family: 'Sergena', sans-serif;
+}
+
+@layer base {
+  :root {
+    --background: 260 40% 3%;
+    --foreground: 210 40% 98%;
+
+    --card: 260 30% 6%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 260 35% 5%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 270 95% 65%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 260 25% 14%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 260 20% 12%;
+    --muted-foreground: 250 15% 65%;
+
+    --accent: 265 89% 60%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 260 25% 15%;
+    --input: 260 25% 15%;
+    --ring: 270 90% 65%;
+
+    --radius: 0.75rem;
+  }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+::-webkit-scrollbar-track {
+  background: #090611;
+}
+::-webkit-scrollbar-thumb {
+  background: #251b3d;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #44326f;
+}
+
+/* Glassmorphism primitives */
+.glass-panel {
+  background: rgba(14, 9, 26, 0.72);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(168, 85, 247, 0.14);
+}
+
+.glass-card {
+  background: rgba(18, 12, 33, 0.65);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.glass-card-hover {
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.glass-card-hover:hover {
+  border-color: rgba(168, 85, 247, 0.35);
+  box-shadow: 0 8px 30px -10px rgba(168, 85, 247, 0.2);
+}
+
+.glow-purple {
+  box-shadow: 0 0 35px -8px rgba(168, 85, 247, 0.35);
+}
+
+.text-gradient-purple {
+  background: linear-gradient(135deg, #ffffff 20%, #c084fc 65%, #9333ea 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.text-gradient-subtle {
+  background: linear-gradient(135deg, #f3e8ff 0%, #cbd5e1 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

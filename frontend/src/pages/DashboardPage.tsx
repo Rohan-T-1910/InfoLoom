@@ -14,6 +14,7 @@ import {
   ArrowRight,
   TrendingUp,
   Cpu,
+  Network,
   CheckCircle2,
   Upload,
 } from 'lucide-react';
@@ -55,6 +56,12 @@ export const DashboardPage: React.FC = () => {
               <Button variant="outline" size="default">
                 <Cpu className="w-4 h-4 mr-2 text-purple-400" />
                 Train ML Models
+              </Button>
+            </Link>
+            <Link to="/clustering">
+              <Button variant="outline" size="default">
+                <Network className="w-4 h-4 mr-2 text-purple-400" />
+                Segmentation
               </Button>
             </Link>
             <Link to="/datasets">

@@ -8,6 +8,7 @@ import { DashboardPage } from './pages/DashboardPage';
 import { DatasetsPage } from './pages/DatasetsPage';
 import { EDAPage } from './pages/EDAPage';
 import { MLModelsPage } from './pages/MLModelsPage';
+import { ClusteringPage } from './pages/ClusteringPage';
 import { InsightsPage } from './pages/InsightsPage';
 import { HistoryPage } from './pages/HistoryPage';
 import { SettingsPage } from './pages/SettingsPage';
@@ -52,6 +53,7 @@ export const App: React.FC = () => {
         <Route path="/datasets" element={<DatasetsPage />} />
         <Route path="/eda" element={<EDAPage />} />
         <Route path="/models" element={<MLModelsPage />} />
+        <Route path="/clustering" element={<ClusteringPage />} />
         <Route path="/insights" element={<InsightsPage />} />
         <Route path="/history" element={<HistoryPage />} />
         <Route path="/settings" element={<SettingsPage />} />

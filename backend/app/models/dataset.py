@@ -77,4 +77,5 @@ class Dataset(Base):
     eda_reports = relationship("EDAReport", back_populates="dataset", cascade="all, delete-orphan", order_by="desc(EDAReport.created_at)")
     ml_jobs = relationship("MLJob", back_populates="dataset", cascade="all, delete-orphan", order_by="desc(MLJob.created_at)")
     ml_models = relationship("MLModel", back_populates="dataset", cascade="all, delete-orphan", order_by="desc(MLModel.created_at)")
+    clustering_models = relationship("ClusteringModel", back_populates="dataset", cascade="all, delete-orphan", order_by="desc(ClusteringModel.created_at)")
 

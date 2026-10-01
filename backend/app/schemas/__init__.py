@@ -40,6 +40,19 @@ from app.schemas.ml import (
     MLPredictResponse,
     MLTargetInspectionResponse,
 )
+from app.schemas.clustering import (
+    ClusteringFeatureInfo,
+    ClusteringFeaturesResponse,
+    ClusteringEvaluationRequest,
+    KMeansKMetric,
+    ClusteringEvaluationResponse,
+    ClusteringRunRequest,
+    ClusterFeatureStat,
+    ClusterProfile,
+    ClusteringDataPoint,
+    ClusteringModelResponse,
+    ClusteringModelSummary,
+)
 
 __all__ = [
     "UserBase",
@@ -73,5 +86,16 @@ __all__ = [
     "MLPredictRequest",
     "MLPredictResponse",
     "MLTargetInspectionResponse",
+    "ClusteringFeatureInfo",
+    "ClusteringFeaturesResponse",
+    "ClusteringEvaluationRequest",
+    "KMeansKMetric",
+    "ClusteringEvaluationResponse",
+    "ClusteringRunRequest",
+    "ClusterFeatureStat",
+    "ClusterProfile",
+    "ClusteringDataPoint",
+    "ClusteringModelResponse",
+    "ClusteringModelSummary",
 ]
 

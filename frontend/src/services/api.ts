@@ -12,6 +12,12 @@ import {
   MLPredictResponse,
   MLTargetInspectionResponse,
   MLTrainRequest,
+  ClusteringFeaturesResponse,
+  ClusteringEvaluationRequest,
+  ClusteringEvaluationResponse,
+  ClusteringRunRequest,
+  ClusteringModelResponse,
+  ClusteringModelSummary,
   User,
 } from '../types';
 
@@ -226,6 +232,47 @@ class ApiClient {
     return this.request<MLPredictResponse>(`/ml/models/${modelId}/predict`, {
       method: 'POST',
       body: JSON.stringify({ inputs }),
+    });
+  }
+
+  // --- Phase 5: Clustering & Customer Segmentation ---
+  async getClusteringFeatures(datasetId: number, useCleaned = true): Promise<ClusteringFeaturesResponse> {
+    return this.request<ClusteringFeaturesResponse>(
+      `/datasets/${datasetId}/clustering/features?use_cleaned=${useCleaned}`
+    );
+  }
+
+  async evaluateClustering(
+    datasetId: number,
+    payload: ClusteringEvaluationRequest
+  ): Promise<ClusteringEvaluationResponse> {
+    return this.request<ClusteringEvaluationResponse>(`/datasets/${datasetId}/clustering/evaluate`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async runClustering(
+    datasetId: number,
+    payload: ClusteringRunRequest
+  ): Promise<ClusteringModelResponse> {
+    return this.request<ClusteringModelResponse>(`/datasets/${datasetId}/clustering/run`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async listDatasetClusteringModels(datasetId: number): Promise<ClusteringModelSummary[]> {
+    return this.request<ClusteringModelSummary[]>(`/datasets/${datasetId}/clustering/results`);
+  }
+
+  async getClusteringModel(modelId: number): Promise<ClusteringModelResponse> {
+    return this.request<ClusteringModelResponse>(`/clustering/models/${modelId}`);
+  }
+
+  async deleteClusteringModel(modelId: number): Promise<void> {
+    return this.request<void>(`/clustering/models/${modelId}`, {
+      method: 'DELETE',
     });
   }
 }

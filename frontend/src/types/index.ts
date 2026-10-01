@@ -247,3 +247,113 @@ export interface MLPredictResponse {
   predictions: MLPredictionItem[];
 }
 
+// ==========================================
+// Phase 5: Clustering & Customer Segmentation Types
+// ==========================================
+
+export interface ClusteringFeatureInfo {
+  name: string;
+  data_type: string;
+  non_null_count: number;
+  missing_count: number;
+  mean?: number | null;
+  std?: number | null;
+  min?: number | null;
+  max?: number | null;
+}
+
+export interface ClusteringFeaturesResponse {
+  dataset_id: number;
+  is_cleaned: boolean;
+  total_rows: number;
+  numeric_features: ClusteringFeatureInfo[];
+  recommended_features: string[];
+}
+
+export interface ClusteringEvaluationRequest {
+  features: string[];
+  k_min?: number;
+  k_max?: number;
+  use_cleaned?: boolean;
+}
+
+export interface KMeansKMetric {
+  k: number;
+  inertia: number;
+  silhouette_score?: number | null;
+}
+
+export interface ClusteringEvaluationResponse {
+  features: string[];
+  n_samples: number;
+  k_metrics: KMeansKMetric[];
+  suggested_k: number;
+  suggestion_reason: string;
+}
+
+export interface ClusteringRunRequest {
+  features: string[];
+  k: number;
+  name?: string | null;
+  use_cleaned?: boolean;
+}
+
+export interface ClusterFeatureStat {
+  feature: string;
+  mean: number;
+  median: number;
+  std: number;
+  min: number;
+  max: number;
+}
+
+export interface ClusterProfile {
+  cluster_id: number;
+  name: string;
+  size: number;
+  percentage: number;
+  stats: ClusterFeatureStat[];
+}
+
+export interface ClusteringDataPoint {
+  index: number;
+  cluster: number;
+  x?: number | null;
+  y?: number | null;
+  features: Record<string, any>;
+}
+
+export interface ClusteringModelResponse {
+  id: number;
+  dataset_id: number;
+  user_id: number;
+  name: string;
+  k: number;
+  feature_names: string[];
+  use_cleaned: boolean;
+  n_samples: number;
+  inertia: number;
+  silhouette_score?: number | null;
+  cluster_centers: Record<string, number[]>;
+  cluster_profiles: ClusterProfile[];
+  evaluation_metrics?: {
+    curve?: Array<{ k: number; inertia: number; silhouette_score?: number | null }>;
+  } | null;
+  sample_assignments?: ClusteringDataPoint[] | null;
+  status: string;
+  created_at: string;
+}
+
+export interface ClusteringModelSummary {
+  id: number;
+  name: string;
+  k: number;
+  feature_names: string[];
+  n_samples: number;
+  inertia: number;
+  silhouette_score?: number | null;
+  status: string;
+  created_at: string;
+}
+
+

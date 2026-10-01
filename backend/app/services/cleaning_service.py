@@ -10,6 +10,7 @@ from app.models.cleaning_report import CleaningReport
 from app.models.dataset import Dataset
 from app.repositories.cleaning_report_repository import cleaning_report_repository
 from app.repositories.dataset_repository import dataset_repository
+from app.repositories.eda_repository import eda_repository
 from app.schemas.cleaning import CleaningConfig
 from app.schemas.dataset import DatasetPreviewResponse
 from app.services.validation_service import validation_service
@@ -110,6 +111,9 @@ class DataCleaningService:
             cleaned_file_path=str(cleaned_path),
             status="completed",
         )
+
+        # 7. Invalidate any existing EDA cache for this dataset
+        eda_repository.invalidate_cache(db=db, dataset_id=dataset.id)
 
         return cleaning_report
 

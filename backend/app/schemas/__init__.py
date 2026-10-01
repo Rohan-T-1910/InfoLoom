@@ -17,6 +17,19 @@ from app.schemas.cleaning import (
     CleaningConfig,
     CleaningReportResponse,
 )
+from app.schemas.eda import (
+    DatasetKPIs,
+    NumericColumnStats,
+    CategoricalColumnStats,
+    CorrelationMatrixResponse,
+    CorrelationPair,
+    ColumnDistribution,
+    DistributionBin,
+    FeatureImportanceResponse,
+    FeatureImportanceItem,
+    EDAResponse,
+    EDARequestConfig,
+)
 
 __all__ = [
     "UserBase",
@@ -32,5 +45,16 @@ __all__ = [
     "ValidationReportResponse",
     "CleaningConfig",
     "CleaningReportResponse",
+    "DatasetKPIs",
+    "NumericColumnStats",
+    "CategoricalColumnStats",
+    "CorrelationMatrixResponse",
+    "CorrelationPair",
+    "ColumnDistribution",
+    "DistributionBin",
+    "FeatureImportanceResponse",
+    "FeatureImportanceItem",
+    "EDAResponse",
+    "EDARequestConfig",
 ]
 

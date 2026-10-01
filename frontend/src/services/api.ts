@@ -6,6 +6,12 @@ import {
   DatasetPreviewResponse,
   EDAResponse,
   FeatureImportanceResponse,
+  MLJob,
+  MLModelDetail,
+  MLModelLeaderboardItem,
+  MLPredictResponse,
+  MLTargetInspectionResponse,
+  MLTrainRequest,
   User,
 } from '../types';
 
@@ -184,6 +190,43 @@ class ApiClient {
     return this.request<FeatureImportanceResponse | null>(
       `/datasets/${datasetId}/eda/feature-importance${qs}`
     );
+  }
+
+  // --- Phase 4: Machine Learning ---
+  async inspectTarget(datasetId: number, targetColumn: string): Promise<MLTargetInspectionResponse> {
+    return this.request<MLTargetInspectionResponse>(
+      `/datasets/${datasetId}/train/inspect-target?target_column=${encodeURIComponent(targetColumn)}`
+    );
+  }
+
+  async trainModels(datasetId: number, payload: MLTrainRequest): Promise<MLJob> {
+    return this.request<MLJob>(`/datasets/${datasetId}/train`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async listDatasetJobs(datasetId: number, limit = 20): Promise<MLJob[]> {
+    return this.request<MLJob[]>(`/datasets/${datasetId}/jobs?limit=${limit}`);
+  }
+
+  async listDatasetModels(datasetId: number, limit = 50): Promise<MLModelLeaderboardItem[]> {
+    return this.request<MLModelLeaderboardItem[]>(`/datasets/${datasetId}/models?limit=${limit}`);
+  }
+
+  async getJob(jobId: number): Promise<MLJob> {
+    return this.request<MLJob>(`/ml/jobs/${jobId}`);
+  }
+
+  async getModel(modelId: number): Promise<MLModelDetail> {
+    return this.request<MLModelDetail>(`/ml/models/${modelId}`);
+  }
+
+  async predict(modelId: number, inputs: Record<string, any>[]): Promise<MLPredictResponse> {
+    return this.request<MLPredictResponse>(`/ml/models/${modelId}/predict`, {
+      method: 'POST',
+      body: JSON.stringify({ inputs }),
+    });
   }
 }
 

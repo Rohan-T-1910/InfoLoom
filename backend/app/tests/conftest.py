@@ -33,7 +33,13 @@ TestingSessionLocal = sessionmaker(
 def setup_test_environment():
     temp_dir = tempfile.mkdtemp()
     settings.UPLOAD_DIR = temp_dir
+    settings.MODELS_DIR = os.path.join(temp_dir, "models")
+    os.makedirs(settings.MODELS_DIR, exist_ok=True)
+    import app.database.session as session_module
+    orig_session_local = session_module.SessionLocal
+    session_module.SessionLocal = TestingSessionLocal
     yield
+    session_module.SessionLocal = orig_session_local
     shutil.rmtree(temp_dir, ignore_errors=True)
 
 @pytest.fixture(scope="function")

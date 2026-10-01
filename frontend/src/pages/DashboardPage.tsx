@@ -51,6 +51,12 @@ export const DashboardPage: React.FC = () => {
                 Launch EDA Engine
               </Button>
             </Link>
+            <Link to="/models">
+              <Button variant="outline" size="default">
+                <Cpu className="w-4 h-4 mr-2 text-purple-400" />
+                Train ML Models
+              </Button>
+            </Link>
             <Link to="/datasets">
               <Button variant="outline" size="default">
                 <Upload className="w-4 h-4 mr-2" />
@@ -177,12 +183,20 @@ export const DashboardPage: React.FC = () => {
                         {new Date(d.created_at).toLocaleDateString()}
                       </td>
                       <td className="py-3.5 px-4 text-right">
-                        <Link to={`/eda?datasetId=${d.id}`}>
-                          <Button variant="outline" size="sm" className="h-7 text-xs">
-                            <BarChart3 className="w-3 h-3 mr-1 text-purple-400" />
-                            Analyze EDA
-                          </Button>
-                        </Link>
+                        <div className="flex items-center justify-end gap-2">
+                          <Link to={`/models?datasetId=${d.id}`}>
+                            <Button variant="ghost" size="sm" className="h-7 text-xs text-purple-300 hover:text-white">
+                              <Cpu className="w-3 h-3 mr-1 text-purple-400" />
+                              Train ML
+                            </Button>
+                          </Link>
+                          <Link to={`/eda?datasetId=${d.id}`}>
+                            <Button variant="outline" size="sm" className="h-7 text-xs">
+                              <BarChart3 className="w-3 h-3 mr-1 text-purple-400" />
+                              Analyze EDA
+                            </Button>
+                          </Link>
+                        </div>
                       </td>
                     </tr>
                   ))}

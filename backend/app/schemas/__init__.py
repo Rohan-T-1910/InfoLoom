@@ -68,6 +68,20 @@ from app.schemas.forecasting import (
     ForecastModelSummary,
 )
 
+from app.schemas.anomaly import (
+    AnomalyFeatureInfo,
+    AnomalyFeaturesResponse,
+    AnomalyDistributionBucket,
+    AnomalyEvaluationRequest,
+    AnomalyEvaluationResponse,
+    AnomalyRunRequest,
+    FeatureDeviation,
+    AnomalousRowDetail,
+    AnomalyScatterPoint,
+    AnomalyModelResponse,
+    AnomalyModelSummary,
+)
+
 __all__ = [
     "UserBase",
     "UserCreate",
@@ -123,5 +137,16 @@ __all__ = [
     "ForecastRunRequest",
     "ForecastModelResponse",
     "ForecastModelSummary",
+    "AnomalyFeatureInfo",
+    "AnomalyFeaturesResponse",
+    "AnomalyDistributionBucket",
+    "AnomalyEvaluationRequest",
+    "AnomalyEvaluationResponse",
+    "AnomalyRunRequest",
+    "FeatureDeviation",
+    "AnomalousRowDetail",
+    "AnomalyScatterPoint",
+    "AnomalyModelResponse",
+    "AnomalyModelSummary",
 ]
 

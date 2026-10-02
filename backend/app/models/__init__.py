@@ -5,5 +5,6 @@ from app.models.eda_report import EDAReport
 from app.models.ml import MLJob, MLModel
 from app.models.clustering import ClusteringModel
 from app.models.forecasting import ForecastModel
+from app.models.anomaly import AnomalyModel
 
-__all__ = ["User", "Dataset", "CleaningReport", "EDAReport", "MLJob", "MLModel", "ClusteringModel", "ForecastModel"]
+__all__ = ["User", "Dataset", "CleaningReport", "EDAReport", "MLJob", "MLModel", "ClusteringModel", "ForecastModel", "AnomalyModel"]

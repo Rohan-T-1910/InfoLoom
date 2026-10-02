@@ -82,5 +82,6 @@ class Dataset(Base):
     anomaly_models = relationship("AnomalyModel", back_populates="dataset", cascade="all, delete-orphan", order_by="desc(AnomalyModel.created_at)")
     insight_reports = relationship("InsightReport", back_populates="dataset", cascade="all, delete-orphan", order_by="desc(InsightReport.created_at)")
     report_documents = relationship("ReportDocument", back_populates="dataset", cascade="all, delete-orphan", order_by="desc(ReportDocument.created_at)")
+    registered_models = relationship("RegisteredModel", back_populates="dataset", cascade="all, delete-orphan", order_by="desc(RegisteredModel.created_at)")
 
 

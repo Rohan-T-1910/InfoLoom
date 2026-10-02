@@ -19,6 +19,7 @@ import {
   Upload,
   ShieldAlert,
   FileSpreadsheet,
+  Layers,
 } from 'lucide-react';
 
 export const DashboardPage: React.FC = () => {
@@ -232,6 +233,12 @@ export const DashboardPage: React.FC = () => {
                             <Button variant="ghost" size="sm" className="h-7 text-xs text-purple-300 hover:text-white">
                               <Cpu className="w-3 h-3 mr-1 text-purple-400" />
                               Train ML
+                            </Button>
+                          </Link>
+                          <Link to={`/registry?datasetId=${d.id}`}>
+                            <Button variant="ghost" size="sm" className="h-7 text-xs text-indigo-300 hover:text-white">
+                              <Layers className="w-3 h-3 mr-1 text-indigo-400" />
+                              Registry
                             </Button>
                           </Link>
                           <Link to={`/eda?datasetId=${d.id}`}>

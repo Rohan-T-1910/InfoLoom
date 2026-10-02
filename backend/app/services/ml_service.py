@@ -381,61 +381,84 @@ class MLService:
                 detail="Model artifact file is missing from disk storage.",
             )
 
-        # Standardize input to list of dicts
-        raw_list = [inputs] if isinstance(inputs, dict) else inputs
-        if not raw_list:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Prediction inputs list cannot be empty.",
-            )
-
-        # Load pipeline artifact via joblib
         pipeline = joblib.load(model.artifact_path)
-
-        # Construct DataFrame ensuring all expected feature columns exist
-        df_input = pd.DataFrame(raw_list)
-        for col in model.feature_names:
-            if col not in df_input.columns:
-                df_input[col] = np.nan
-
-        # Align column order exactly
-        df_input = df_input[model.feature_names]
-
-        # Generate predictions
-        raw_predictions = pipeline.predict(df_input)
-
-        # Map predictions back to original class labels for classification if available
-        if model.task_type == "classification" and model.target_classes:
-            classes = model.target_classes
-            predictions = [
-                classes[int(p)] if 0 <= int(p) < len(classes) else p
-                for p in raw_predictions
-            ]
-        else:
-            predictions = [
-                float(round(p, 4)) if isinstance(p, (np.floating, float)) else p
-                for p in raw_predictions
-            ]
-
-        probabilities = None
-        if model.task_type == "classification" and hasattr(pipeline, "predict_proba"):
-            try:
-                proba_array = pipeline.predict_proba(df_input)
-                classes = model.target_classes if model.target_classes else [str(i) for i in range(proba_array.shape[1])]
-                probabilities = [
-                    {str(classes[i]): float(round(prob, 4)) for i, prob in enumerate(row)}
-                    for row in proba_array
-                ]
-            except Exception:
-                probabilities = None
-
-        return MLPredictResponse(
+        return execute_pipeline_prediction(
+            pipeline=pipeline,
+            task_type=model.task_type,
+            feature_names=model.feature_names,
+            target_classes=model.target_classes,
+            inputs=inputs,
             model_id=model.id,
             model_name=model.name,
-            task_type=model.task_type,
-            predictions=predictions,
-            probabilities=probabilities,
-            feature_names=model.feature_names,
         )
+
+
+def execute_pipeline_prediction(
+    pipeline: Any,
+    task_type: str,
+    feature_names: list[str],
+    target_classes: Optional[list[Any]],
+    inputs: Union[dict[str, Any], list[dict[str, Any]]],
+    model_id: int,
+    model_name: str,
+) -> MLPredictResponse:
+    """
+    Shared, leak-free pipeline inference executor.
+    Standardizes input dictionaries, aligns feature columns, runs predict / predict_proba,
+    and formats the standardized MLPredictResponse.
+    """
+    raw_list = [inputs] if isinstance(inputs, dict) else inputs
+    if not raw_list:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Prediction inputs list cannot be empty.",
+        )
+
+    # Construct DataFrame ensuring all expected feature columns exist
+    df_input = pd.DataFrame(raw_list)
+    for col in feature_names:
+        if col not in df_input.columns:
+            df_input[col] = np.nan
+
+    # Align column order exactly
+    df_input = df_input[feature_names]
+
+    # Generate predictions
+    raw_predictions = pipeline.predict(df_input)
+
+    # Map predictions back to original class labels for classification if available
+    if task_type == "classification" and target_classes:
+        classes = target_classes
+        predictions = [
+            classes[int(p)] if 0 <= int(p) < len(classes) else p
+            for p in raw_predictions
+        ]
+    else:
+        predictions = [
+            float(round(p, 4)) if isinstance(p, (np.floating, float)) else p
+            for p in raw_predictions
+        ]
+
+    probabilities = None
+    if task_type == "classification" and hasattr(pipeline, "predict_proba"):
+        try:
+            proba_array = pipeline.predict_proba(df_input)
+            classes = target_classes if target_classes else [str(i) for i in range(proba_array.shape[1])]
+            probabilities = [
+                {str(classes[i]): float(round(prob, 4)) for i, prob in enumerate(row)}
+                for row in proba_array
+            ]
+        except Exception:
+            probabilities = None
+
+    return MLPredictResponse(
+        model_id=model_id,
+        model_name=model_name,
+        task_type=task_type,
+        predictions=predictions,
+        probabilities=probabilities,
+        feature_names=feature_names,
+    )
+
 
 ml_service = MLService()

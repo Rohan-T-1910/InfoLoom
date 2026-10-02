@@ -209,15 +209,19 @@ export interface MLTrainRequest {
 
 export interface MLModelLeaderboardItem {
   id: number;
+  name?: string;
   algorithm: string;
-  algorithm_name: string;
+  algorithm_name?: string;
   task_type: MLTaskType;
-  test_metrics: Record<string, number | null>;
-  cv_mean: number | null;
-  cv_std: number | null;
-  primary_metric_name: string;
-  primary_metric_value: number | null;
-  status: string;
+  test_metrics?: Record<string, number | null>;
+  metrics?: Record<string, any>;
+  hyperparameters?: Record<string, any>;
+  is_best?: boolean;
+  cv_mean?: number | null;
+  cv_std?: number | null;
+  primary_metric_name?: string;
+  primary_metric_value?: number | null;
+  status?: string;
   error_message?: string | null;
   created_at: string;
 }
@@ -250,7 +254,7 @@ export interface MLModelDetail extends MLModelLeaderboardItem {
 }
 
 export interface MLPredictRequest {
-  inputs: Record<string, any>[];
+  inputs: Record<string, any>[] | Record<string, any>;
 }
 
 export interface MLPredictionItem {
@@ -260,9 +264,12 @@ export interface MLPredictionItem {
 
 export interface MLPredictResponse {
   model_id: number;
-  algorithm: string;
-  task_type: MLTaskType;
-  predictions: MLPredictionItem[];
+  model_name?: string;
+  algorithm?: string;
+  task_type: MLTaskType | string;
+  predictions: any[];
+  probabilities?: Record<string, number>[] | null;
+  feature_names?: string[];
 }
 
 // ==========================================
@@ -741,5 +748,60 @@ export interface CSVExportPreviewResponse {
   total_rows: number;
   columns: string[];
   preview_rows: Record<string, any>[];
+}
+
+// ==========================================
+// Phase 10: Model Registry & Management Types
+// ==========================================
+
+export interface RegisterModelRequest {
+  name: string;
+  dataset_id: number;
+  source_model_id?: number | null;
+  description?: string | null;
+  set_active?: boolean;
+  algorithm?: string;
+  task_type?: string;
+  target_column?: string;
+  feature_names?: string[];
+  target_classes?: any[];
+  metrics?: Record<string, any>;
+  training_parameters?: Record<string, any>;
+  artifact_path?: string;
+}
+
+export interface RollbackModelRequest {
+  target_version?: number | null;
+}
+
+export interface RegisteredModelResponse {
+  id: number;
+  name: string;
+  version: number;
+  description?: string | null;
+  user_id: number;
+  dataset_id: number;
+  dataset_name?: string | null;
+  source_model_id?: number | null;
+  algorithm: string;
+  task_type: string;
+  target_column: string;
+  feature_names: string[];
+  target_classes?: any[] | null;
+  metrics: Record<string, any>;
+  training_parameters: Record<string, any>;
+  artifact_path: string;
+  artifact_size_bytes?: number | null;
+  has_artifact: boolean;
+  status: string;
+  is_active: boolean;
+  activated_at?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface RegisteredModelListResponse {
+  items: RegisteredModelResponse[];
+  total: number;
 }
 

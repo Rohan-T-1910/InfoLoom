@@ -36,6 +36,10 @@ import {
   ReportReadinessResponse,
   ReportDocumentResponse,
   CSVExportPreviewResponse,
+  RegisterModelRequest,
+  RollbackModelRequest,
+  RegisteredModelResponse,
+  RegisteredModelListResponse,
   User,
 } from '../types';
 import { ApiError, extractErrorMessage } from '../lib/errorUtils';
@@ -585,6 +589,107 @@ class ApiClient {
     return this.request<ReportDocumentResponse[]>(
       `/datasets/${datasetId}/reports/history?limit=${limit}`
     );
+  }
+
+  // --- Phase 10: Model Management & Registry ---
+  async listRegisteredModels(params?: {
+    dataset_id?: number;
+    name?: string;
+    task_type?: string;
+    is_active?: boolean;
+    limit?: number;
+    offset?: number;
+  }): Promise<RegisteredModelListResponse> {
+    const query = new URLSearchParams();
+    if (params?.dataset_id !== undefined) query.append('dataset_id', String(params.dataset_id));
+    if (params?.name) query.append('name', params.name);
+    if (params?.task_type) query.append('task_type', params.task_type);
+    if (params?.is_active !== undefined) query.append('is_active', String(params.is_active));
+    if (params?.limit !== undefined) query.append('limit', String(params.limit));
+    if (params?.offset !== undefined) query.append('offset', String(params.offset));
+
+    const qs = query.toString();
+    return this.request<RegisteredModelListResponse>(
+      `/models/registry${qs ? `?${qs}` : ''}`
+    );
+  }
+
+  async getRegisteredModel(modelId: number): Promise<RegisteredModelResponse> {
+    return this.request<RegisteredModelResponse>(`/models/registry/${modelId}`);
+  }
+
+  async registerModel(data: RegisterModelRequest): Promise<RegisteredModelResponse> {
+    return this.request<RegisteredModelResponse>('/models/registry', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async activateModelVersion(modelId: number): Promise<RegisteredModelResponse> {
+    return this.request<RegisteredModelResponse>(`/models/registry/${modelId}/activate`, {
+      method: 'POST',
+    });
+  }
+
+  async rollbackModelVersion(
+    modelId: number,
+    targetVersion?: number
+  ): Promise<RegisteredModelResponse> {
+    return this.request<RegisteredModelResponse>(`/models/registry/${modelId}/rollback`, {
+      method: 'POST',
+      body: JSON.stringify({ target_version: targetVersion ?? null }),
+    });
+  }
+
+  async deleteModelVersion(
+    modelId: number
+  ): Promise<{ message: string; deleted_id: number; name: string; version: number }> {
+    return this.request<{ message: string; deleted_id: number; name: string; version: number }>(
+      `/models/registry/${modelId}`,
+      {
+        method: 'DELETE',
+      }
+    );
+  }
+
+  async getActiveModel(params?: {
+    name?: string;
+    dataset_id?: number;
+  }): Promise<RegisteredModelResponse> {
+    const query = new URLSearchParams();
+    if (params?.name) query.append('name', params.name);
+    if (params?.dataset_id) query.append('dataset_id', String(params.dataset_id));
+    const qs = query.toString();
+    return this.request<RegisteredModelResponse>(
+      `/models/registry/active${qs ? `?${qs}` : ''}`
+    );
+  }
+
+  async predictWithActiveModel(
+    inputs: Record<string, any> | Record<string, any>[],
+    params?: { name?: string; dataset_id?: number }
+  ): Promise<MLPredictResponse> {
+    const query = new URLSearchParams();
+    if (params?.name) query.append('name', params.name);
+    if (params?.dataset_id) query.append('dataset_id', String(params.dataset_id));
+    const qs = query.toString();
+    return this.request<MLPredictResponse>(
+      `/models/registry/active/predict${qs ? `?${qs}` : ''}`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ inputs }),
+      }
+    );
+  }
+
+  async predictWithRegisteredModel(
+    modelId: number,
+    inputs: Record<string, any> | Record<string, any>[]
+  ): Promise<MLPredictResponse> {
+    return this.request<MLPredictResponse>(`/models/registry/${modelId}/predict`, {
+      method: 'POST',
+      body: JSON.stringify({ inputs }),
+    });
   }
 }
 

@@ -4,7 +4,8 @@ import { useAuth } from '../context/AuthContext';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
-import { AlertCircle, Lock, Mail, User as UserIcon } from 'lucide-react';
+import { AlertCircle, Lock, Mail, User as UserIcon, Loader2 } from 'lucide-react';
+import { getErrorMessage } from '../lib/errorUtils';
 
 export const RegisterPage: React.FC = () => {
   const { register } = useAuth();
@@ -19,13 +20,57 @@ export const RegisterPage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+
+    const trimmedName = name.trim();
+    if (!trimmedName) {
+      setError('Please enter your full name.');
+      return;
+    }
+
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail) {
+      setError('Please enter your email address.');
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(trimmedEmail)) {
+      setError('Please enter a valid email address.');
+      return;
+    }
+
+    if (!password) {
+      setError('Please enter a password.');
+      return;
+    }
+
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters long.');
+      return;
+    }
+
+    if (password.length > 72) {
+      setError('Password cannot exceed 72 characters.');
+      return;
+    }
+
     setLoading(true);
 
     try {
-      await register({ name, email, password });
+      await register({
+        name: trimmedName,
+        email: trimmedEmail.toLowerCase(),
+        password,
+      });
+      // Immediately navigate to the authenticated dashboard
       navigate('/dashboard');
     } catch (err: any) {
-      setError(err.message || 'Registration failed');
+      setError(
+        getErrorMessage(
+          err,
+          'Registration failed. Please check your information and try again.'
+        )
+      );
     } finally {
       setLoading(false);
     }
@@ -59,7 +104,7 @@ export const RegisterPage: React.FC = () => {
               </div>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-3.5">
+            <form onSubmit={handleSubmit} noValidate className="space-y-3.5">
               <div>
                 <label className="text-xs text-slate-300 block mb-1">Full Name</label>
                 <div className="relative">
@@ -67,10 +112,11 @@ export const RegisterPage: React.FC = () => {
                   <Input
                     type="text"
                     required
+                    disabled={loading}
                     placeholder="Alex Mercer"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    className="pl-9 h-10 text-xs"
+                    className="pl-9 h-10 text-xs disabled:opacity-50"
                   />
                 </div>
               </div>
@@ -82,10 +128,11 @@ export const RegisterPage: React.FC = () => {
                   <Input
                     type="email"
                     required
+                    disabled={loading}
                     placeholder="architect@infoloom.ai"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="pl-9 h-10 text-xs"
+                    className="pl-9 h-10 text-xs disabled:opacity-50"
                   />
                 </div>
               </div>
@@ -97,16 +144,33 @@ export const RegisterPage: React.FC = () => {
                   <Input
                     type="password"
                     required
+                    disabled={loading}
                     placeholder="••••••••"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="pl-9 h-10 text-xs"
+                    className="pl-9 h-10 text-xs disabled:opacity-50"
                   />
                 </div>
+                <span className="text-[10px] text-slate-500 mt-1 block">
+                  Must be between 6 and 72 characters
+                </span>
               </div>
 
-              <Button type="submit" variant="glow" size="default" className="w-full mt-2" disabled={loading}>
-                {loading ? 'Creating Account...' : 'Get Started'}
+              <Button
+                type="submit"
+                variant="glow"
+                size="default"
+                className="w-full mt-2"
+                disabled={loading}
+              >
+                {loading ? (
+                  <span className="flex items-center gap-2">
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    Creating Account...
+                  </span>
+                ) : (
+                  'Get Started'
+                )}
               </Button>
             </form>
 

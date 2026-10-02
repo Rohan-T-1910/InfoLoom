@@ -4,7 +4,8 @@ import { useAuth } from '../context/AuthContext';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
-import { AlertCircle, Lock, Mail, Sparkles, ArrowRight } from 'lucide-react';
+import { AlertCircle, Lock, Mail, Sparkles, Loader2 } from 'lucide-react';
+import { getErrorMessage } from '../lib/errorUtils';
 
 export const LoginPage: React.FC = () => {
   const { login, guestLogin } = useAuth();
@@ -18,16 +19,31 @@ export const LoginPage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail) {
+      setError('Please enter your email address.');
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(trimmedEmail)) {
+      setError('Please enter a valid email address.');
+      return;
+    }
+
+    if (!password) {
+      setError('Please enter your password.');
+      return;
+    }
+
     setLoading(true);
 
     try {
-      const formData = new FormData();
-      formData.append('username', email);
-      formData.append('password', password);
-      await login(formData);
+      await login({ email: trimmedEmail.toLowerCase(), password });
       navigate('/dashboard');
     } catch (err: any) {
-      setError(err.message || 'Invalid credentials');
+      setError(getErrorMessage(err, 'The email or password is incorrect.'));
     } finally {
       setLoading(false);
     }
@@ -67,7 +83,7 @@ export const LoginPage: React.FC = () => {
               </div>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-3.5">
+            <form onSubmit={handleSubmit} noValidate className="space-y-3.5">
               <div>
                 <label className="text-xs text-slate-300 block mb-1">Email</label>
                 <div className="relative">
@@ -75,10 +91,11 @@ export const LoginPage: React.FC = () => {
                   <Input
                     type="email"
                     required
+                    disabled={loading}
                     placeholder="architect@infoloom.ai"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="pl-9 h-10 text-xs"
+                    className="pl-9 h-10 text-xs disabled:opacity-50"
                   />
                 </div>
               </div>
@@ -90,16 +107,30 @@ export const LoginPage: React.FC = () => {
                   <Input
                     type="password"
                     required
+                    disabled={loading}
                     placeholder="••••••••"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="pl-9 h-10 text-xs"
+                    className="pl-9 h-10 text-xs disabled:opacity-50"
                   />
                 </div>
               </div>
 
-              <Button type="submit" variant="glow" size="default" className="w-full mt-2" disabled={loading}>
-                {loading ? 'Authenticating...' : 'Sign In'}
+              <Button
+                type="submit"
+                variant="glow"
+                size="default"
+                className="w-full mt-2"
+                disabled={loading}
+              >
+                {loading ? (
+                  <span className="flex items-center gap-2">
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    Signing in...
+                  </span>
+                ) : (
+                  'Sign In'
+                )}
               </Button>
             </form>
 
@@ -116,6 +147,7 @@ export const LoginPage: React.FC = () => {
               type="button"
               variant="outline"
               size="default"
+              disabled={loading}
               className="w-full text-xs text-purple-200 border-purple-500/30 hover:bg-purple-950/40"
               onClick={handleGuest}
             >

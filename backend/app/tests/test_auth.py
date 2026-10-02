@@ -15,6 +15,8 @@ def test_register_user_success(client: TestClient):
     assert data["email"] == "janedoe@example.com"
     assert data["role"] == "User"
     assert "id" in data
+    assert "access_token" in data
+    assert data["token_type"] == "bearer"
     assert "password" not in data
     assert "password_hash" not in data
 
@@ -65,6 +67,19 @@ def test_login_form_success(client: TestClient, user_a):
     assert response.status_code == 200
     data = response.json()
     assert "access_token" in data
+
+def test_login_form_at_login_endpoint(client: TestClient, user_a):
+    response = client.post(
+        "/api/v1/auth/login",
+        data={
+            "email": user_a.email,
+            "password": "password123",
+        },
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert "access_token" in data
+    assert data["token_type"] == "bearer"
 
 def test_login_wrong_password(client: TestClient, user_a):
     response = client.post(

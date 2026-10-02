@@ -6,7 +6,7 @@ interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (formData: FormData) => Promise<void>;
+  login: (credentials: { email: string; password: string } | FormData) => Promise<void>;
   register: (payload: { email: string; password: string; name: string }) => Promise<void>;
   logout: () => void;
   guestLogin: () => void;
@@ -35,18 +35,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     initAuth();
   }, []);
 
-  const login = async (formData: FormData) => {
-    await api.login(formData);
+  const login = async (credentials: { email: string; password: string } | FormData) => {
+    await api.login(credentials);
     const me = await api.getCurrentUser();
     setUser(me);
   };
 
   const register = async (payload: { email: string; password: string; name: string }) => {
-    await api.register(payload);
-    const formData = new FormData();
-    formData.append('username', payload.email);
-    formData.append('password', payload.password);
-    await login(formData);
+    const registeredUser = await api.register(payload);
+    if (registeredUser.access_token) {
+      setUser(registeredUser);
+    } else {
+      await login({ email: payload.email, password: payload.password });
+    }
   };
 
   const logout = () => {

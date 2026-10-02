@@ -53,6 +53,20 @@ from app.schemas.clustering import (
     ClusteringModelResponse,
     ClusteringModelSummary,
 )
+from app.schemas.forecasting import (
+    TimeSeriesDateColumnInfo,
+    TimeSeriesNumericColumnInfo,
+    ForecastingColumnsResponse,
+    TimeSeriesPoint,
+    ForecastValidationPoint,
+    FutureForecastPoint,
+    ForecastMetrics,
+    ForecastEvaluationRequest,
+    ForecastEvaluationResponse,
+    ForecastRunRequest,
+    ForecastModelResponse,
+    ForecastModelSummary,
+)
 
 __all__ = [
     "UserBase",
@@ -97,5 +111,17 @@ __all__ = [
     "ClusteringDataPoint",
     "ClusteringModelResponse",
     "ClusteringModelSummary",
+    "TimeSeriesDateColumnInfo",
+    "TimeSeriesNumericColumnInfo",
+    "ForecastingColumnsResponse",
+    "TimeSeriesPoint",
+    "ForecastValidationPoint",
+    "FutureForecastPoint",
+    "ForecastMetrics",
+    "ForecastEvaluationRequest",
+    "ForecastEvaluationResponse",
+    "ForecastRunRequest",
+    "ForecastModelResponse",
+    "ForecastModelSummary",
 ]
 

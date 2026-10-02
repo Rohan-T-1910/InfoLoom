@@ -116,13 +116,13 @@ export const DashboardPage: React.FC = () => {
 
         <Card className="p-5 border border-white/[0.08] bg-[#0c0818]/90">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-xs text-slate-400 font-medium">Phase 3 Status</span>
-            <div className="p-2 rounded-lg bg-purple-950/50 text-purple-400">
-              <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+            <span className="text-xs text-slate-400 font-medium">Phase 6 Status</span>
+            <div className="p-2 rounded-lg bg-cyan-950/50 text-cyan-400">
+              <TrendingUp className="w-4 h-4 text-cyan-400" />
             </div>
           </div>
-          <div className="text-lg font-bold text-emerald-400">EDA Active</div>
-          <div className="text-xs text-slate-400 mt-1">FastAPI + Caching Ready</div>
+          <div className="text-lg font-bold text-cyan-400">Forecasting Active</div>
+          <div className="text-xs text-slate-400 mt-1">ARIMA + Backtesting Ready</div>
         </Card>
       </div>
 
@@ -191,6 +191,12 @@ export const DashboardPage: React.FC = () => {
                       </td>
                       <td className="py-3.5 px-4 text-right">
                         <div className="flex items-center justify-end gap-2">
+                          <Link to={`/forecasting?datasetId=${d.id}`}>
+                            <Button variant="ghost" size="sm" className="h-7 text-xs text-cyan-300 hover:text-white">
+                              <TrendingUp className="w-3 h-3 mr-1 text-cyan-400" />
+                              Forecast
+                            </Button>
+                          </Link>
                           <Link to={`/models?datasetId=${d.id}`}>
                             <Button variant="ghost" size="sm" className="h-7 text-xs text-purple-300 hover:text-white">
                               <Cpu className="w-3 h-3 mr-1 text-purple-400" />

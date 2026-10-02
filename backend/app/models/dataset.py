@@ -80,5 +80,6 @@ class Dataset(Base):
     clustering_models = relationship("ClusteringModel", back_populates="dataset", cascade="all, delete-orphan", order_by="desc(ClusteringModel.created_at)")
     forecast_models = relationship("ForecastModel", back_populates="dataset", cascade="all, delete-orphan", order_by="desc(ForecastModel.created_at)")
     anomaly_models = relationship("AnomalyModel", back_populates="dataset", cascade="all, delete-orphan", order_by="desc(AnomalyModel.created_at)")
+    insight_reports = relationship("InsightReport", back_populates="dataset", cascade="all, delete-orphan", order_by="desc(InsightReport.created_at)")
 
 

@@ -82,6 +82,17 @@ from app.schemas.anomaly import (
     AnomalyModelSummary,
 )
 
+from app.schemas.insight import (
+    InsightCategory,
+    InsightSeverity,
+    InsightDirection,
+    StructuredInsightFact,
+    InsightKPISummary,
+    InsightGenerateRequest,
+    InsightReportResponse,
+    InsightSummaryResponse,
+)
+
 __all__ = [
     "UserBase",
     "UserCreate",
@@ -148,5 +159,13 @@ __all__ = [
     "AnomalyScatterPoint",
     "AnomalyModelResponse",
     "AnomalyModelSummary",
+    "InsightCategory",
+    "InsightSeverity",
+    "InsightDirection",
+    "StructuredInsightFact",
+    "InsightKPISummary",
+    "InsightGenerateRequest",
+    "InsightReportResponse",
+    "InsightSummaryResponse",
 ]
 

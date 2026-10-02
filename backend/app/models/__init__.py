@@ -6,5 +6,6 @@ from app.models.ml import MLJob, MLModel
 from app.models.clustering import ClusteringModel
 from app.models.forecasting import ForecastModel
 from app.models.anomaly import AnomalyModel
+from app.models.insight import InsightReport
 
-__all__ = ["User", "Dataset", "CleaningReport", "EDAReport", "MLJob", "MLModel", "ClusteringModel", "ForecastModel", "AnomalyModel"]
+__all__ = ["User", "Dataset", "CleaningReport", "EDAReport", "MLJob", "MLModel", "ClusteringModel", "ForecastModel", "AnomalyModel", "InsightReport"]

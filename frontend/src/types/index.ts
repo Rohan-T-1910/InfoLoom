@@ -618,6 +618,78 @@ export interface AnomalyModelSummary {
   created_at: string;
 }
 
+// ==========================================
+// Phase 8: Business Insights Types
+// ==========================================
 
+export type InsightCategoryType =
+  | 'percentage_change'
+  | 'top_contributor'
+  | 'trend'
+  | 'distribution'
+  | 'correlation'
+  | 'forecast'
+  | 'anomaly'
+  | 'model_performance'
+  | 'data_quality';
 
+export type InsightSeverityType = 'critical' | 'warning' | 'positive' | 'info';
 
+export interface StructuredInsightFact {
+  id: string;
+  category: string;
+  title: string;
+  severity: InsightSeverityType;
+  direction: string;
+  feature: string;
+  secondary_feature?: string | null;
+  current_value?: number | null;
+  comparison_value?: number | null;
+  change_pct?: number | null;
+  change_abs?: number | null;
+  confidence: number;
+  explanation: string;
+  polished_explanation?: string | null;
+  supporting_evidence: Record<string, any>;
+  is_llm_polished: boolean;
+}
+
+export interface InsightKPISummary {
+  total_insights: number;
+  critical_count: number;
+  warning_count: number;
+  positive_count: number;
+  info_count: number;
+  categories_covered: string[];
+}
+
+export interface InsightGenerateRequest {
+  use_cleaned?: boolean;
+  include_llm?: boolean;
+  categories?: string[];
+  pct_change_threshold?: number;
+}
+
+export interface InsightReportResponse {
+  id: number;
+  dataset_id: number;
+  user_id: number;
+  title: string;
+  summary?: string | null;
+  total_insights: number;
+  is_cleaned: boolean;
+  llm_polished: boolean;
+  kpi_summary: InsightKPISummary;
+  categories: string[];
+  insights: StructuredInsightFact[];
+  created_at: string;
+}
+
+export interface InsightSummaryResponse {
+  dataset_id: number;
+  has_report: boolean;
+  total_insights: number;
+  kpi_summary?: InsightKPISummary | null;
+  top_insights: StructuredInsightFact[];
+  created_at?: string | null;
+}

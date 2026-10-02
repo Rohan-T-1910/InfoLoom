@@ -30,6 +30,9 @@ import {
   AnomalyRunRequest,
   AnomalyModelResponse,
   AnomalyModelSummary,
+  InsightGenerateRequest,
+  InsightReportResponse,
+  InsightSummaryResponse,
   User,
 } from '../types';
 import { ApiError, extractErrorMessage } from '../lib/errorUtils';
@@ -426,6 +429,53 @@ class ApiClient {
     return this.request<void>(`/anomalies/models/${modelId}`, {
       method: 'DELETE',
     });
+  }
+
+  // --- Phase 8: Business Insights ---
+  async getDatasetInsights(
+    datasetId: number,
+    options?: {
+      refresh?: boolean;
+      include_llm?: boolean;
+      category?: string;
+      min_severity?: string;
+    }
+  ): Promise<InsightReportResponse> {
+    const params = new URLSearchParams();
+    if (options?.refresh) params.append('refresh', 'true');
+    if (options?.include_llm) params.append('include_llm', 'true');
+    if (options?.category) params.append('category', options.category);
+    if (options?.min_severity) params.append('min_severity', options.min_severity);
+
+    const qs = params.toString() ? `?${params.toString()}` : '';
+    return this.request<InsightReportResponse>(`/datasets/${datasetId}/insights${qs}`);
+  }
+
+  async generateDatasetInsights(
+    datasetId: number,
+    payload: InsightGenerateRequest
+  ): Promise<InsightReportResponse> {
+    return this.request<InsightReportResponse>(`/datasets/${datasetId}/insights/generate`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async getDatasetInsightsSummary(
+    datasetId: number
+  ): Promise<InsightSummaryResponse> {
+    return this.request<InsightSummaryResponse>(`/datasets/${datasetId}/insights/summary`);
+  }
+
+  async deleteDatasetInsights(
+    datasetId: number
+  ): Promise<{ detail: string; deleted_count: number }> {
+    return this.request<{ detail: string; deleted_count: number }>(
+      `/datasets/${datasetId}/insights`,
+      {
+        method: 'DELETE',
+      }
+    );
   }
 }
 

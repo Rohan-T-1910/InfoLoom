@@ -203,6 +203,12 @@ export const DashboardPage: React.FC = () => {
                       </td>
                       <td className="py-3.5 px-4 text-right">
                         <div className="flex items-center justify-end gap-2">
+                          <Link to={`/insights?datasetId=${d.id}`}>
+                            <Button variant="ghost" size="sm" className="h-7 text-xs text-purple-300 hover:text-white">
+                              <Sparkles className="w-3 h-3 mr-1 text-purple-400" />
+                              Insights
+                            </Button>
+                          </Link>
                           <Link to={`/anomalies?datasetId=${d.id}`}>
                             <Button variant="ghost" size="sm" className="h-7 text-xs text-rose-300 hover:text-white">
                               <ShieldAlert className="w-3 h-3 mr-1 text-rose-400" />

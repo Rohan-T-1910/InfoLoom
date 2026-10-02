@@ -4,5 +4,6 @@ from app.models.cleaning_report import CleaningReport
 from app.models.eda_report import EDAReport
 from app.models.ml import MLJob, MLModel
 from app.models.clustering import ClusteringModel
+from app.models.forecasting import ForecastModel
 
-__all__ = ["User", "Dataset", "CleaningReport", "EDAReport", "MLJob", "MLModel", "ClusteringModel"]
+__all__ = ["User", "Dataset", "CleaningReport", "EDAReport", "MLJob", "MLModel", "ClusteringModel", "ForecastModel"]

@@ -17,6 +17,8 @@ class UserResponse(UserBase):
     id: int
     role: str
     created_at: datetime
+    access_token: Optional[str] = None
+    token_type: Optional[str] = "bearer"
 
     model_config = ConfigDict(from_attributes=True)
 

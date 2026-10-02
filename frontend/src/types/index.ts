@@ -3,6 +3,24 @@ export interface User {
   email: string;
   name: string;
   role: string;
+  access_token?: string | null;
+  token_type?: string | null;
+}
+
+export interface AuthResponse extends User {
+  access_token: string;
+  token_type: string;
+}
+
+export interface LoginPayload {
+  email: string;
+  password: string;
+}
+
+export interface RegisterPayload {
+  name: string;
+  email: string;
+  password: string;
 }
 
 export interface Dataset {
@@ -355,5 +373,129 @@ export interface ClusteringModelSummary {
   status: string;
   created_at: string;
 }
+
+// ==========================================
+// Phase 6: Time Series Forecasting Types
+// ==========================================
+
+export interface ForecastingColumnInfo {
+  name: string;
+  data_type: string;
+  non_null_count: number;
+  sample_values: string[];
+}
+
+export interface ForecastingColumnsResponse {
+  dataset_id: number;
+  is_cleaned: boolean;
+  total_rows: number;
+  datetime_columns: ForecastingColumnInfo[];
+  numeric_columns: ForecastingColumnInfo[];
+  recommended_date_column?: string | null;
+  recommended_target_column?: string | null;
+}
+
+export interface ForecastEvaluationRequest {
+  date_column: string;
+  target_column: string;
+  horizon?: number;
+  frequency?: string | null;
+  use_cleaned?: boolean;
+}
+
+export interface TimeSeriesPoint {
+  timestamp: string;
+  value: number;
+}
+
+export interface ForecastBacktestPoint {
+  timestamp: string;
+  actual: number;
+  predicted: number;
+  error: number;
+  lower_ci?: number | null;
+  upper_ci?: number | null;
+}
+
+export interface ForecastEvaluationMetrics {
+  mape: number;
+  rmse: number;
+  mae: number;
+  r2?: number | null;
+  directional_accuracy?: number | null;
+  test_samples: number;
+  train_samples: number;
+}
+
+export interface ForecastEvaluationResponse {
+  date_column: string;
+  target_column: string;
+  horizon: number;
+  frequency: string;
+  total_observations: number;
+  date_min: string;
+  date_max: string;
+  model_name: string;
+  model_order: number[];
+  metrics: ForecastEvaluationMetrics;
+  backtest_points: ForecastBacktestPoint[];
+}
+
+export interface ForecastRunRequest {
+  date_column: string;
+  target_column: string;
+  horizon?: number;
+  frequency?: string | null;
+  name?: string | null;
+  use_cleaned?: boolean;
+}
+
+export interface FutureForecastPoint {
+  timestamp: string;
+  forecast: number;
+  lower_ci: number;
+  upper_ci: number;
+}
+
+export interface ForecastModelResponse {
+  id: number;
+  dataset_id: number;
+  user_id: number;
+  name: string;
+  date_column: string;
+  target_column: string;
+  frequency: string;
+  horizon: number;
+  model_type: string;
+  model_order: number[];
+  aic?: number | null;
+  bic?: number | null;
+  metrics: ForecastEvaluationMetrics;
+  historical_points: TimeSeriesPoint[];
+  backtest_points?: ForecastBacktestPoint[] | null;
+  forecast_points: FutureForecastPoint[];
+  date_min: string;
+  date_max: string;
+  total_observations: number;
+  use_cleaned: boolean;
+  status: string;
+  error_message?: string | null;
+  created_at: string;
+}
+
+export interface ForecastModelSummary {
+  id: number;
+  name: string;
+  date_column: string;
+  target_column: string;
+  frequency: string;
+  horizon: number;
+  model_type: string;
+  mape: number;
+  rmse: number;
+  status: string;
+  created_at: string;
+}
+
 
 

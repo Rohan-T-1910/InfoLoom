@@ -18,8 +18,15 @@ import {
   ClusteringRunRequest,
   ClusteringModelResponse,
   ClusteringModelSummary,
+  ForecastingColumnsResponse,
+  ForecastEvaluationRequest,
+  ForecastEvaluationResponse,
+  ForecastRunRequest,
+  ForecastModelResponse,
+  ForecastModelSummary,
   User,
 } from '../types';
+import { ApiError, extractErrorMessage } from '../lib/errorUtils';
 
 const API_BASE = '/api/v1';
 
@@ -51,20 +58,35 @@ class ApiClient {
       headers.set('Content-Type', 'application/json');
     }
 
-    const response = await fetch(`${API_BASE}${endpoint}`, {
-      ...options,
-      headers,
-    });
+    let response: Response;
+    try {
+      response = await fetch(`${API_BASE}${endpoint}`, {
+        ...options,
+        headers,
+      });
+    } catch (networkErr: any) {
+      const msg = extractErrorMessage(
+        networkErr,
+        undefined,
+        'Unable to connect to the server. Please check your connection and try again.'
+      );
+      throw new ApiError(msg, 0, networkErr);
+    }
 
     if (!response.ok) {
-      let errorMessage = 'An error occurred';
+      let rawError: any = null;
       try {
-        const errJson = await response.json();
-        errorMessage = errJson.detail || errJson.message || JSON.stringify(errJson);
+        rawError = await response.json();
       } catch {
-        errorMessage = `HTTP error ${response.status}: ${response.statusText}`;
+        try {
+          rawError = await response.text();
+        } catch {
+          rawError = null;
+        }
       }
-      throw new Error(errorMessage);
+      const humanMessage = extractErrorMessage(rawError, response.status);
+      console.error(`[API Error ${response.status}] ${endpoint}:`, rawError);
+      throw new ApiError(humanMessage, response.status, rawError);
     }
 
     if (response.status === 204) {
@@ -75,25 +97,41 @@ class ApiClient {
   }
 
   // --- Auth ---
-  async login(formData: FormData): Promise<{ access_token: string; token_type: string }> {
-    const res = await fetch(`${API_BASE}/auth/login`, {
-      method: 'POST',
-      body: formData,
-    });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({ detail: 'Login failed' }));
-      throw new Error(err.detail || 'Invalid email or password');
+  async login(
+    credentials: { email: string; password: string } | FormData
+  ): Promise<{ access_token: string; token_type: string }> {
+    let email = '';
+    let password = '';
+
+    if (credentials instanceof FormData) {
+      email = (credentials.get('email') || credentials.get('username') || '') as string;
+      password = (credentials.get('password') || '') as string;
+    } else {
+      email = credentials.email;
+      password = credentials.password;
     }
-    const data = await res.json();
-    this.setToken(data.access_token);
+
+    const data = await this.request<{ access_token: string; token_type: string }>('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ email: email.trim(), password }),
+    });
+
+    if (data.access_token) {
+      this.setToken(data.access_token);
+    }
     return data;
   }
 
   async register(payload: { email: string; password: string; name: string }): Promise<User> {
-    return this.request<User>('/auth/register', {
+    const data = await this.request<User>('/auth/register', {
       method: 'POST',
       body: JSON.stringify(payload),
     });
+
+    if (data.access_token) {
+      this.setToken(data.access_token);
+    }
+    return data;
   }
 
   async getCurrentUser(): Promise<User> {
@@ -272,6 +310,60 @@ class ApiClient {
 
   async deleteClusteringModel(modelId: number): Promise<void> {
     return this.request<void>(`/clustering/models/${modelId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // --- Phase 6: Time Series Forecasting ---
+  async inspectForecastingColumns(
+    datasetId: number,
+    useCleaned = true
+  ): Promise<ForecastingColumnsResponse> {
+    return this.request<ForecastingColumnsResponse>(
+      `/datasets/${datasetId}/forecasting/columns?use_cleaned=${useCleaned}`
+    );
+  }
+
+  async evaluateForecasting(
+    datasetId: number,
+    payload: ForecastEvaluationRequest
+  ): Promise<ForecastEvaluationResponse> {
+    return this.request<ForecastEvaluationResponse>(
+      `/datasets/${datasetId}/forecasting/evaluate`,
+      {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      }
+    );
+  }
+
+  async runForecasting(
+    datasetId: number,
+    payload: ForecastRunRequest
+  ): Promise<ForecastModelResponse> {
+    return this.request<ForecastModelResponse>(
+      `/datasets/${datasetId}/forecasting/run`,
+      {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      }
+    );
+  }
+
+  async listDatasetForecastModels(
+    datasetId: number
+  ): Promise<ForecastModelSummary[]> {
+    return this.request<ForecastModelSummary[]>(
+      `/datasets/${datasetId}/forecasting/results`
+    );
+  }
+
+  async getForecastModel(modelId: number): Promise<ForecastModelResponse> {
+    return this.request<ForecastModelResponse>(`/forecasting/models/${modelId}`);
+  }
+
+  async deleteForecastModel(modelId: number): Promise<void> {
+    return this.request<void>(`/forecasting/models/${modelId}`, {
       method: 'DELETE',
     });
   }

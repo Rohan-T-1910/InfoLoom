@@ -33,6 +33,9 @@ import {
   InsightGenerateRequest,
   InsightReportResponse,
   InsightSummaryResponse,
+  ReportReadinessResponse,
+  ReportDocumentResponse,
+  CSVExportPreviewResponse,
   User,
 } from '../types';
 import { ApiError, extractErrorMessage } from '../lib/errorUtils';
@@ -103,6 +106,60 @@ class ApiClient {
     }
 
     return response.json();
+  }
+
+  private async requestBlob(
+    endpoint: string,
+    options: RequestInit = {}
+  ): Promise<{ blob: Blob; filename?: string }> {
+    const token = this.getToken();
+    const headers = new Headers(options.headers || {});
+    if (token) {
+      headers.set('Authorization', `Bearer ${token}`);
+    }
+
+    let response: Response;
+    try {
+      response = await fetch(`${API_BASE}${endpoint}`, {
+        ...options,
+        headers,
+      });
+    } catch (networkErr: any) {
+      const msg = extractErrorMessage(
+        networkErr,
+        undefined,
+        'Unable to connect to the server. Please check your connection and try again.'
+      );
+      throw new ApiError(msg, 0, networkErr);
+    }
+
+    if (!response.ok) {
+      let rawError: any = null;
+      try {
+        rawError = await response.json();
+      } catch {
+        try {
+          rawError = await response.text();
+        } catch {
+          rawError = null;
+        }
+      }
+      const humanMessage = extractErrorMessage(rawError, response.status);
+      console.error(`[API Error ${response.status}] ${endpoint}:`, rawError);
+      throw new ApiError(humanMessage, response.status, rawError);
+    }
+
+    let filename: string | undefined;
+    const disposition = response.headers.get('Content-Disposition');
+    if (disposition && disposition.includes('filename=')) {
+      const match = disposition.match(/filename="?([^";]+)"?/);
+      if (match && match[1]) {
+        filename = match[1];
+      }
+    }
+
+    const blob = await response.blob();
+    return { blob, filename };
   }
 
   // --- Auth ---
@@ -475,6 +532,58 @@ class ApiClient {
       {
         method: 'DELETE',
       }
+    );
+  }
+
+  // --- Phase 9: Reports & Export ---
+  async getReportReadiness(datasetId: number): Promise<ReportReadinessResponse> {
+    return this.request<ReportReadinessResponse>(`/datasets/${datasetId}/reports/readiness`);
+  }
+
+  async downloadPdfReport(datasetId: number): Promise<{ blob: Blob; filename: string }> {
+    const res = await this.requestBlob(`/datasets/${datasetId}/reports/pdf`);
+    return {
+      blob: res.blob,
+      filename: res.filename || `InfoLoom_Report_${datasetId}.pdf`,
+    };
+  }
+
+  async previewPredictionsCSV(
+    datasetId: number,
+    exportType: 'ml' | 'forecast' | 'anomaly' = 'ml',
+    modelId?: number
+  ): Promise<CSVExportPreviewResponse> {
+    const params = new URLSearchParams();
+    params.append('export_type', exportType);
+    if (modelId) params.append('model_id', String(modelId));
+    return this.request<CSVExportPreviewResponse>(
+      `/datasets/${datasetId}/reports/export/preview?${params.toString()}`
+    );
+  }
+
+  async downloadPredictionsCSV(
+    datasetId: number,
+    exportType: 'ml' | 'forecast' | 'anomaly' = 'ml',
+    modelId?: number
+  ): Promise<{ blob: Blob; filename: string }> {
+    const params = new URLSearchParams();
+    params.append('export_type', exportType);
+    if (modelId) params.append('model_id', String(modelId));
+    const res = await this.requestBlob(
+      `/datasets/${datasetId}/reports/export/predictions?${params.toString()}`
+    );
+    return {
+      blob: res.blob,
+      filename: res.filename || `infoloom_${exportType}_predictions_${datasetId}.csv`,
+    };
+  }
+
+  async getReportHistory(
+    datasetId: number,
+    limit: number = 20
+  ): Promise<ReportDocumentResponse[]> {
+    return this.request<ReportDocumentResponse[]>(
+      `/datasets/${datasetId}/reports/history?limit=${limit}`
     );
   }
 }

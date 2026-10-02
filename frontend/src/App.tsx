@@ -12,6 +12,7 @@ import { ClusteringPage } from './pages/ClusteringPage';
 import { ForecastingPage } from './pages/ForecastingPage';
 import { AnomalyDetectionPage } from './pages/AnomalyDetectionPage';
 import { InsightsPage } from './pages/InsightsPage';
+import { ReportsPage } from './pages/ReportsPage';
 import { HistoryPage } from './pages/HistoryPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { useAuth } from './context/AuthContext';
@@ -59,6 +60,7 @@ export const App: React.FC = () => {
         <Route path="/forecasting" element={<ForecastingPage />} />
         <Route path="/anomalies" element={<AnomalyDetectionPage />} />
         <Route path="/insights" element={<InsightsPage />} />
+        <Route path="/reports" element={<ReportsPage />} />
         <Route path="/history" element={<HistoryPage />} />
         <Route path="/settings" element={<SettingsPage />} />
       </Route>

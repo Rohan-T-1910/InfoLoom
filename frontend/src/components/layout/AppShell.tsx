@@ -9,6 +9,7 @@ import {
   TrendingUp,
   ShieldAlert,
   Sparkles,
+  FileSpreadsheet,
   History,
   Settings,
   LogOut,
@@ -38,6 +39,7 @@ const navItems: NavItem[] = [
   { name: 'Forecasting', href: '/forecasting', icon: TrendingUp, badge: 'Phase 6' },
   { name: 'Anomaly Detection', href: '/anomalies', icon: ShieldAlert, badge: 'Phase 7' },
   { name: 'Insights', href: '/insights', icon: Sparkles, badge: 'Phase 8' },
+  { name: 'Reports & Export', href: '/reports', icon: FileSpreadsheet, badge: 'Phase 9' },
   { name: 'History', href: '/history', icon: History },
   { name: 'Profile / Settings', href: '/settings', icon: Settings },
 ];

@@ -92,6 +92,12 @@ from app.schemas.insight import (
     InsightReportResponse,
     InsightSummaryResponse,
 )
+from app.schemas.report import (
+    ReportSectionStatus,
+    ReportReadinessResponse,
+    ReportDocumentResponse,
+    CSVExportPreviewResponse,
+)
 
 __all__ = [
     "UserBase",
@@ -167,5 +173,9 @@ __all__ = [
     "InsightGenerateRequest",
     "InsightReportResponse",
     "InsightSummaryResponse",
+    "ReportSectionStatus",
+    "ReportReadinessResponse",
+    "ReportDocumentResponse",
+    "CSVExportPreviewResponse",
 ]
 

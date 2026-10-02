@@ -23,3 +23,5 @@ statsmodels
 
 pytest
 httpx
+reportlab
+matplotlib

@@ -18,6 +18,7 @@ import {
   CheckCircle2,
   Upload,
   ShieldAlert,
+  FileSpreadsheet,
 } from 'lucide-react';
 
 export const DashboardPage: React.FC = () => {
@@ -63,6 +64,12 @@ export const DashboardPage: React.FC = () => {
               <Button variant="outline" size="default">
                 <Network className="w-4 h-4 mr-2 text-purple-400" />
                 Segmentation
+              </Button>
+            </Link>
+            <Link to="/reports">
+              <Button variant="outline" size="default">
+                <FileSpreadsheet className="w-4 h-4 mr-2 text-purple-400" />
+                Reports & Export
               </Button>
             </Link>
             <Link to="/datasets">

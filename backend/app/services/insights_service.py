@@ -718,7 +718,7 @@ class BusinessInsightsService:
 
         last_actual = model.historical_points[-1]["value"]
         forecast_end = model.forecast_points[-1]["forecast"]
-        horizon = model.horizon
+        horizon = getattr(model, "forecast_horizon", getattr(model, "horizon", 7))
 
         if abs(last_actual) > 1e-6:
             pct_change = ((forecast_end - last_actual) / abs(last_actual)) * 100.0
@@ -746,7 +746,7 @@ class BusinessInsightsService:
                     ),
                     supporting_evidence={
                         "model_name": model.name,
-                        "model_order": model.model_order,
+                        "model_order": getattr(model, "model_order", (model.model_parameters or {}).get("order", "ARIMA")),
                         "horizon": horizon,
                         "frequency": model.frequency,
                         "last_historical_value": round(last_actual, 4),
@@ -838,18 +838,22 @@ class BusinessInsightsService:
             return facts
 
         # Metrics check
+        metrics = model.metrics or {} if hasattr(model, "metrics") and isinstance(model.metrics, dict) else {}
+        r2_val = metrics.get("r2") or getattr(model, "r2", None)
+        acc_val = metrics.get("accuracy") or getattr(model, "accuracy", None)
         metric_str = ""
         confidence = 0.85
-        if model.task_type == "regression" and model.r2 is not None:
-            metric_str = f"R² score of {model.r2:.3f}"
-            confidence = min(0.98, max(0.60, model.r2))
-        elif model.task_type == "classification" and model.accuracy is not None:
-            metric_str = f"classification accuracy of {(model.accuracy * 100):.1f}%"
-            confidence = min(0.98, max(0.60, model.accuracy))
+        if model.task_type == "regression" and r2_val is not None:
+            metric_str = f"R² score of {r2_val:.3f}"
+            confidence = min(0.98, max(0.60, r2_val))
+        elif model.task_type == "classification" and acc_val is not None:
+            metric_str = f"classification accuracy of {(acc_val * 100):.1f}%"
+            confidence = min(0.98, max(0.60, acc_val))
 
         imp_str = ""
-        if model.feature_importance:
-            sorted_imp = sorted(model.feature_importance.items(), key=lambda x: x[1], reverse=True)[:2]
+        feat_imp = getattr(model, "feature_importance", None) or metrics.get("feature_importance")
+        if feat_imp and isinstance(feat_imp, dict):
+            sorted_imp = sorted(feat_imp.items(), key=lambda x: x[1], reverse=True)[:2]
             imp_str = f", driven primarily by {sorted_imp[0][0]} ({sorted_imp[0][1] * 100:.1f}%)"
             if len(sorted_imp) > 1:
                 imp_str += f" and {sorted_imp[1][0]} ({sorted_imp[1][1] * 100:.1f}%)"
@@ -871,9 +875,9 @@ class BusinessInsightsService:
                     "algorithm": model.algorithm,
                     "task_type": model.task_type,
                     "target_column": model.target_column,
-                    "r2": round(model.r2, 4) if model.r2 is not None else None,
-                    "rmse": round(model.rmse, 4) if model.rmse is not None else None,
-                    "accuracy": round(model.accuracy, 4) if model.accuracy is not None else None,
+                    "r2": round(r2_val, 4) if r2_val is not None else None,
+                    "rmse": round(metrics.get("rmse"), 4) if metrics.get("rmse") is not None else None,
+                    "accuracy": round(acc_val, 4) if acc_val is not None else None,
                 },
             )
         )

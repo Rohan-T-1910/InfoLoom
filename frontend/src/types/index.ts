@@ -693,3 +693,53 @@ export interface InsightSummaryResponse {
   top_insights: StructuredInsightFact[];
   created_at?: string | null;
 }
+
+// ==========================================
+// Phase 9: Reports & Export Types
+// ==========================================
+
+export type ReportSectionStatusType = 'available' | 'unavailable' | 'pending';
+
+export interface ReportSectionStatus {
+  key: string;
+  name: string;
+  phase: string;
+  status: ReportSectionStatusType;
+  detail?: string | null;
+  record_count?: number | null;
+}
+
+export interface ReportReadinessResponse {
+  dataset_id: number;
+  dataset_name: string;
+  total_rows: number;
+  total_columns: number;
+  has_cleaned: boolean;
+  sections: ReportSectionStatus[];
+  available_sections_count: number;
+  total_sections_count: number;
+  ready_for_pdf: boolean;
+}
+
+export interface ReportDocumentResponse {
+  id: number;
+  dataset_id: number;
+  user_id: number;
+  title: string;
+  report_type: string;
+  file_name: string;
+  file_size_bytes: number;
+  sections_included: string[];
+  metadata_summary: Record<string, any>;
+  created_at: string;
+}
+
+export interface CSVExportPreviewResponse {
+  export_type: 'ml' | 'forecast' | 'anomaly';
+  model_id?: number | null;
+  model_name: string;
+  total_rows: number;
+  columns: string[];
+  preview_rows: Record<string, any>[];
+}
+

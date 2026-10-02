@@ -497,5 +497,127 @@ export interface ForecastModelSummary {
   created_at: string;
 }
 
+// ==========================================
+// Phase 7: Anomaly Detection Types
+// ==========================================
+
+export interface AnomalyFeatureInfo {
+  name: string;
+  data_type: string;
+  non_null_count: number;
+  missing_count: number;
+  min?: number | null;
+  max?: number | null;
+  mean?: number | null;
+  std?: number | null;
+}
+
+export interface AnomalyFeaturesResponse {
+  dataset_id: number;
+  is_cleaned: boolean;
+  total_rows: number;
+  numeric_features: AnomalyFeatureInfo[];
+  recommended_features: string[];
+}
+
+export interface AnomalyDistributionBucket {
+  bucket_min: number;
+  bucket_max: number;
+  label: string;
+  count: number;
+  anomaly_count: number;
+}
+
+export interface AnomalyEvaluationRequest {
+  features: string[];
+  contamination?: number;
+  use_cleaned?: boolean;
+}
+
+export interface AnomalyEvaluationResponse {
+  features: string[];
+  n_samples: number;
+  estimated_anomalies: number;
+  estimated_percentage: number;
+  threshold_score: number;
+  score_min: number;
+  score_max: number;
+  score_mean: number;
+  suggested_contamination: number;
+  score_distribution: AnomalyDistributionBucket[];
+}
+
+export interface AnomalyRunRequest {
+  features: string[];
+  contamination?: number;
+  name?: string | null;
+  n_estimators?: number;
+  use_cleaned?: boolean;
+}
+
+export interface FeatureDeviation {
+  feature: string;
+  value: number;
+  inlier_mean: number;
+  inlier_std: number;
+  z_score: number;
+  severity: 'high' | 'medium' | 'low';
+}
+
+export interface AnomalousRowDetail {
+  index: number;
+  score: number;
+  normalized_score: number;
+  severity: 'high' | 'medium' | 'low';
+  feature_values: Record<string, any>;
+  top_deviations: FeatureDeviation[];
+}
+
+export interface AnomalyScatterPoint {
+  index: number;
+  x: number;
+  y: number;
+  score: number;
+  normalized_score: number;
+  is_anomaly: boolean;
+}
+
+export interface AnomalyModelResponse {
+  id: number;
+  dataset_id: number;
+  user_id: number;
+  name: string;
+  contamination: number;
+  n_estimators: number;
+  feature_names: string[];
+  use_cleaned: boolean;
+  n_samples: number;
+  n_anomalies: number;
+  anomaly_percentage: number;
+  threshold_score: number;
+  score_min: number;
+  score_max: number;
+  score_mean: number;
+  summary_stats?: Record<string, any> | null;
+  anomalous_rows?: AnomalousRowDetail[] | null;
+  distribution_buckets?: AnomalyDistributionBucket[] | null;
+  scatter_points?: AnomalyScatterPoint[] | null;
+  status: string;
+  created_at: string;
+}
+
+export interface AnomalyModelSummary {
+  id: number;
+  name: string;
+  contamination: number;
+  feature_names: string[];
+  n_samples: number;
+  n_anomalies: number;
+  anomaly_percentage: number;
+  status: string;
+  created_at: string;
+}
+
+
 
 

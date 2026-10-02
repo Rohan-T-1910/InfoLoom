@@ -10,6 +10,7 @@ import { EDAPage } from './pages/EDAPage';
 import { MLModelsPage } from './pages/MLModelsPage';
 import { ClusteringPage } from './pages/ClusteringPage';
 import { ForecastingPage } from './pages/ForecastingPage';
+import { AnomalyDetectionPage } from './pages/AnomalyDetectionPage';
 import { InsightsPage } from './pages/InsightsPage';
 import { HistoryPage } from './pages/HistoryPage';
 import { SettingsPage } from './pages/SettingsPage';
@@ -56,6 +57,7 @@ export const App: React.FC = () => {
         <Route path="/models" element={<MLModelsPage />} />
         <Route path="/clustering" element={<ClusteringPage />} />
         <Route path="/forecasting" element={<ForecastingPage />} />
+        <Route path="/anomalies" element={<AnomalyDetectionPage />} />
         <Route path="/insights" element={<InsightsPage />} />
         <Route path="/history" element={<HistoryPage />} />
         <Route path="/settings" element={<SettingsPage />} />

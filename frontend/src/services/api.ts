@@ -24,6 +24,12 @@ import {
   ForecastRunRequest,
   ForecastModelResponse,
   ForecastModelSummary,
+  AnomalyFeaturesResponse,
+  AnomalyEvaluationRequest,
+  AnomalyEvaluationResponse,
+  AnomalyRunRequest,
+  AnomalyModelResponse,
+  AnomalyModelSummary,
   User,
 } from '../types';
 import { ApiError, extractErrorMessage } from '../lib/errorUtils';
@@ -364,6 +370,60 @@ class ApiClient {
 
   async deleteForecastModel(modelId: number): Promise<void> {
     return this.request<void>(`/forecasting/models/${modelId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // --- Phase 7: Anomaly Detection ---
+  async getAnomalyFeatures(
+    datasetId: number,
+    useCleaned = true
+  ): Promise<AnomalyFeaturesResponse> {
+    return this.request<AnomalyFeaturesResponse>(
+      `/datasets/${datasetId}/anomalies/features?use_cleaned=${useCleaned}`
+    );
+  }
+
+  async evaluateAnomalyConfig(
+    datasetId: number,
+    payload: AnomalyEvaluationRequest
+  ): Promise<AnomalyEvaluationResponse> {
+    return this.request<AnomalyEvaluationResponse>(
+      `/datasets/${datasetId}/anomalies/evaluate`,
+      {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      }
+    );
+  }
+
+  async runAnomalyDetection(
+    datasetId: number,
+    payload: AnomalyRunRequest
+  ): Promise<AnomalyModelResponse> {
+    return this.request<AnomalyModelResponse>(
+      `/datasets/${datasetId}/anomalies/run`,
+      {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      }
+    );
+  }
+
+  async listDatasetAnomalyModels(
+    datasetId: number
+  ): Promise<AnomalyModelSummary[]> {
+    return this.request<AnomalyModelSummary[]>(
+      `/datasets/${datasetId}/anomalies/results`
+    );
+  }
+
+  async getAnomalyModel(modelId: number): Promise<AnomalyModelResponse> {
+    return this.request<AnomalyModelResponse>(`/anomalies/models/${modelId}`);
+  }
+
+  async deleteAnomalyModel(modelId: number): Promise<void> {
+    return this.request<void>(`/anomalies/models/${modelId}`, {
       method: 'DELETE',
     });
   }

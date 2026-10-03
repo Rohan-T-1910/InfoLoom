@@ -10,17 +10,14 @@ import { EDAFeatureImportance } from '../components/eda/EDAFeatureImportance';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import { Skeleton } from '../components/ui/skeleton';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/tabs';
 import {
   BarChart3,
   RefreshCw,
   Database,
   CheckCircle2,
   Clock,
-  Sparkles,
   AlertTriangle,
   ArrowRight,
-  Filter,
   Cpu,
 } from 'lucide-react';
 
@@ -107,7 +104,7 @@ export const EDAPage: React.FC = () => {
             </h1>
           </div>
           <p className="text-xs text-slate-400 mt-1">
-            Explore trends, patterns, distributions, and relationships in your data.
+            Explore trends, relationships, and the overall structure of your dataset.
           </p>
         </div>
 
@@ -153,7 +150,7 @@ export const EDAPage: React.FC = () => {
             </div>
           )}
 
-          {/* Force Refresh Button */}
+          {/* Force Refresh & Modeling Shortcuts */}
           {effectiveId && (
             <div className="flex items-center gap-2">
               <Link to={`/models?datasetId=${effectiveId}`}>
@@ -214,12 +211,13 @@ export const EDAPage: React.FC = () => {
       {/* Loading State */}
       {(isLoadingDatasets || isLoadingEDA) && (
         <div className="space-y-6">
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-            {[1, 2, 3, 4, 5].map((i) => (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {[1, 2, 3, 4].map((i) => (
               <Skeleton key={i} className="h-24 w-full" />
             ))}
           </div>
-          <Skeleton className="h-96 w-full" />
+          <Skeleton className="h-44 w-full" />
+          <Skeleton className="h-80 w-full" />
           <Skeleton className="h-80 w-full" />
         </div>
       )}
@@ -255,10 +253,10 @@ export const EDAPage: React.FC = () => {
         </div>
       )}
 
-      {/* EDA Main Dashboard Content */}
+      {/* EDA Main Dashboard Content: Single Coherent Scrollable View */}
       {!isLoadingEDA && edaData && (
         <div className="space-y-6">
-          {/* 1. KPIs Banner */}
+          {/* A. Dataset Health / Overview */}
           <EDAKPIs
             kpis={edaData.kpis}
             isCleaned={edaData.is_cleaned}
@@ -266,49 +264,21 @@ export const EDAPage: React.FC = () => {
             createdAt={edaData.created_at}
           />
 
-          {/* 2. Exploration Sections via Tabbed View */}
-          <Tabs defaultValue="all" className="w-full">
-            <TabsList className="w-full justify-start overflow-x-auto">
-              <TabsTrigger value="all">Complete View</TabsTrigger>
-              <TabsTrigger value="stats">Summary Statistics</TabsTrigger>
-              <TabsTrigger value="correlations">Correlation Matrix</TabsTrigger>
-              <TabsTrigger value="distributions">Distributions</TabsTrigger>
-              <TabsTrigger value="importance">Feature Importance</TabsTrigger>
-            </TabsList>
+          {/* B. What Stands Out: Key Relationships & Patterns */}
+          <EDACorrelationMatrix correlations={edaData.correlation_matrix} />
 
-            {/* Complete View (shows all modular blocks in visual flow) */}
-            <TabsContent value="all" className="space-y-6 mt-4">
-              <EDASummaryStats stats={edaData.summary_statistics} />
-              <EDACorrelationMatrix correlations={edaData.correlation_matrix} />
-              <EDADistributions distributions={edaData.distributions} />
-              <EDAFeatureImportance
-                featureImportance={edaData.feature_importance}
-                onTargetChange={handleTargetChange}
-                isLoading={isFetching}
-              />
-            </TabsContent>
+          {/* C. Dataset Fields & Column Overview */}
+          <EDASummaryStats stats={edaData.summary_statistics} />
 
-            {/* Individual Tab Views */}
-            <TabsContent value="stats">
-              <EDASummaryStats stats={edaData.summary_statistics} />
-            </TabsContent>
+          {/* D. Field Value Distribution */}
+          <EDADistributions distributions={edaData.distributions} />
 
-            <TabsContent value="correlations">
-              <EDACorrelationMatrix correlations={edaData.correlation_matrix} />
-            </TabsContent>
-
-            <TabsContent value="distributions">
-              <EDADistributions distributions={edaData.distributions} />
-            </TabsContent>
-
-            <TabsContent value="importance">
-              <EDAFeatureImportance
-                featureImportance={edaData.feature_importance}
-                onTargetChange={handleTargetChange}
-                isLoading={isFetching}
-              />
-            </TabsContent>
-          </Tabs>
+          {/* E. What Influences the Outcome? */}
+          <EDAFeatureImportance
+            featureImportance={edaData.feature_importance}
+            onTargetChange={handleTargetChange}
+            isLoading={isFetching}
+          />
         </div>
       )}
     </div>

@@ -12,7 +12,7 @@ vi.mock('react-chartjs-2', () => ({
   Line: () => <div data-testid="mock-line-chart">Line Chart</div>,
 }));
 
-describe('Phase 3 EDA Components', () => {
+describe('Customer-Oriented EDA Components', () => {
   const sampleKPIs: DatasetKPIs = {
     row_count: 1000,
     column_count: 8,
@@ -27,17 +27,24 @@ describe('Phase 3 EDA Components', () => {
     memory_human: '64 KB',
   };
 
-  it('renders dataset KPIs correctly', () => {
+  it('renders simplified business-facing dataset KPIs correctly without memory footprint', () => {
     render(<EDAKPIs kpis={sampleKPIs} isCleaned={true} cached={true} />);
 
-    expect(screen.getByText('1,000 × 8')).toBeInTheDocument();
-    expect(screen.getByText('8,000 data cells')).toBeInTheDocument();
-    expect(screen.getByText('0.5%')).toBeInTheDocument();
-    expect(screen.getByText('5 Num / 3 Cat')).toBeInTheDocument();
-    expect(screen.getByText('64 KB')).toBeInTheDocument();
+    expect(screen.getByText('Total Records')).toBeInTheDocument();
+    expect(screen.getByText('1,000 rows')).toBeInTheDocument();
+    expect(screen.getByText('Data Completeness')).toBeInTheDocument();
+    expect(screen.getByText('99.5%')).toBeInTheDocument();
+    expect(screen.getByText('Duplicate Records')).toBeInTheDocument();
+    expect(screen.getByText('2 duplicates')).toBeInTheDocument();
+    expect(screen.getByText('Usable Fields')).toBeInTheDocument();
+    expect(screen.getByText('8 Fields')).toBeInTheDocument();
+
+    // Verify system metrics like Memory Footprint are completely omitted
+    expect(screen.queryByText('Memory Footprint')).not.toBeInTheDocument();
+    expect(screen.queryByText('64 KB')).not.toBeInTheDocument();
   });
 
-  it('renders summary statistics table for numerical and categorical features', () => {
+  it('renders plain-language column overview table for numerical and categorical features', () => {
     const stats: any = {
       salary: {
         data_type: 'numeric',
@@ -74,12 +81,19 @@ describe('Phase 3 EDA Components', () => {
 
     render(<EDASummaryStats stats={stats} />);
 
+    expect(screen.getByText('Dataset Fields & Column Overview')).toBeInTheDocument();
     expect(screen.getByText('salary')).toBeInTheDocument();
     expect(screen.getByText('department')).toBeInTheDocument();
     expect(screen.getByText('4 distinct')).toBeInTheDocument();
+    expect(screen.getByText('Engineering')).toBeInTheDocument();
+
+    // Verify statistical jargon is not rendered
+    expect(screen.queryByText('Skewness / Kurtosis')).not.toBeInTheDocument();
+    expect(screen.queryByText('Std Dev')).not.toBeInTheDocument();
+    expect(screen.queryByText('IQR [25% - 75%]')).not.toBeInTheDocument();
   });
 
-  it('renders correlation matrix with collinearity warning signals', () => {
+  it('renders business-oriented key relationships and overlap warnings', () => {
     const corr: CorrelationMatrixResponse = {
       columns: ['age', 'income'],
       matrix: {
@@ -102,8 +116,11 @@ describe('Phase 3 EDA Components', () => {
 
     render(<EDACorrelationMatrix correlations={corr} />);
 
-    expect(screen.getByText('Pearson Correlation Matrix')).toBeInTheDocument();
-    expect(screen.getByText(/Severe collinearity detected/i)).toBeInTheDocument();
-    expect(screen.getByText('Strong positive correlation')).toBeInTheDocument();
+    expect(screen.getByText('Key Relationships & Patterns')).toBeInTheDocument();
+    expect(screen.getByText('High Overlap Detected')).toBeInTheDocument();
+    expect(screen.getByText(/show a strong positive relationship/i)).toBeInTheDocument();
+
+    // Verify technical Pearson matrix terms are omitted
+    expect(screen.queryByText('Pearson Correlation Matrix')).not.toBeInTheDocument();
   });
 });

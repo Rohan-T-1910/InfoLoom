@@ -38,21 +38,21 @@ export const DashboardPage: React.FC = () => {
   const modelsCount = modelsData?.total ?? modelsData?.items?.length ?? 0;
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 w-full min-w-0">
       {/* Welcome Banner */}
-      <div className="relative overflow-hidden rounded-2xl border border-white/[0.08] bg-gradient-to-r from-purple-950/40 via-[#0e091b] to-[#080512] p-8 backdrop-blur-xl">
+      <div className="relative overflow-hidden rounded-2xl border border-white/[0.08] bg-gradient-to-r from-purple-950/40 via-[#0e091b] to-[#080512] p-6 sm:p-8 backdrop-blur-xl w-full">
         <div className="relative z-10 max-w-2xl">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-purple-500/30 bg-purple-950/40 text-purple-300 text-xs font-semibold mb-4">
             <Sparkles className="w-3.5 h-3.5" />
             <span>Data Intelligence & Analytics</span>
           </div>
-          <h1 className="text-3xl font-bold tracking-tight text-white mb-2">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white mb-2">
             Welcome to InfoLoom
           </h1>
           <p className="text-sm text-slate-300 leading-relaxed mb-6">
             Explore trends, build predictive models, discover customer segments, identify anomalies, and create executive reports from your data.
           </p>
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2.5 sm:gap-3">
             <Link to="/eda">
               <Button variant="glow" size="default">
                 <BarChart3 className="w-4 h-4 mr-2" />
@@ -91,7 +91,7 @@ export const DashboardPage: React.FC = () => {
       </div>
 
       {/* Overview Metric Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4 w-full">
         <Card className="p-5 border border-white/[0.08] bg-[#0c0818]/90">
           <div className="flex items-center justify-between mb-3">
             <span className="text-xs text-slate-400 font-medium">Datasets</span>
@@ -155,7 +155,7 @@ export const DashboardPage: React.FC = () => {
       </div>
 
       {/* Recent Datasets Table */}
-      <Card className="border border-white/[0.08] bg-[#0c0818]/90">
+      <Card className="border border-white/[0.08] bg-[#0c0818]/90 w-full min-w-0 overflow-hidden">
         <CardHeader className="flex flex-row items-center justify-between pb-4 border-b border-white/[0.06]">
           <div>
             <CardTitle className="text-base font-semibold text-white">Your Datasets</CardTitle>
@@ -182,7 +182,7 @@ export const DashboardPage: React.FC = () => {
               No datasets uploaded yet. Upload a dataset to start exploring your data and discovering useful patterns.
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto w-full">
               <table className="w-full text-left text-xs text-slate-300">
                 <thead className="bg-[#120c24] text-slate-400 uppercase tracking-wider font-semibold border-b border-white/[0.08]">
                   <tr>
@@ -197,60 +197,60 @@ export const DashboardPage: React.FC = () => {
                 <tbody className="divide-y divide-white/[0.05]">
                   {datasets.slice(0, 5).map((d) => (
                     <tr key={d.id} className="hover:bg-white/[0.02] transition-colors">
-                      <td className="py-3.5 px-4 font-medium text-white">
+                      <td className="py-3.5 px-4 font-medium text-white whitespace-nowrap">
                         <div className="flex items-center gap-2">
-                          <Database className="w-3.5 h-3.5 text-purple-400" />
-                          <span>{d.original_filename}</span>
+                          <Database className="w-3.5 h-3.5 text-purple-400 shrink-0" />
+                          <span className="truncate max-w-[200px]" title={d.original_filename}>{d.original_filename}</span>
                         </div>
                       </td>
-                      <td className="py-3.5 px-3 font-mono text-slate-400">
+                      <td className="py-3.5 px-3 font-mono text-slate-400 whitespace-nowrap">
                         {d.row_count || 0} × {d.column_count || 0}
                       </td>
-                      <td className="py-3.5 px-3 font-mono text-slate-400">
+                      <td className="py-3.5 px-3 font-mono text-slate-400 whitespace-nowrap">
                         {(d.file_size_bytes / 1024).toFixed(1)} KB
                       </td>
-                      <td className="py-3.5 px-3">
+                      <td className="py-3.5 px-3 whitespace-nowrap">
                         <Badge variant={d.has_cleaned ? 'success' : 'secondary'} className="text-[10px]">
                           {d.has_cleaned ? 'Cleaned' : 'Raw'}
                         </Badge>
                       </td>
-                      <td className="py-3.5 px-3 text-slate-400">
+                      <td className="py-3.5 px-3 text-slate-400 whitespace-nowrap">
                         {new Date(d.created_at).toLocaleDateString()}
                       </td>
                       <td className="py-3.5 px-4 text-right">
-                        <div className="flex items-center justify-end gap-2">
+                        <div className="flex flex-wrap items-center justify-end gap-1.5 max-w-xl ml-auto">
                           <Link to={`/insights?datasetId=${d.id}`}>
-                            <Button variant="ghost" size="sm" className="h-7 text-xs text-purple-300 hover:text-white">
+                            <Button variant="ghost" size="sm" className="h-7 px-2 text-xs text-purple-300 hover:text-white">
                               <Sparkles className="w-3 h-3 mr-1 text-purple-400" />
                               Insights
                             </Button>
                           </Link>
                           <Link to={`/anomalies?datasetId=${d.id}`}>
-                            <Button variant="ghost" size="sm" className="h-7 text-xs text-rose-300 hover:text-white">
+                            <Button variant="ghost" size="sm" className="h-7 px-2 text-xs text-rose-300 hover:text-white">
                               <ShieldAlert className="w-3 h-3 mr-1 text-rose-400" />
                               Anomalies
                             </Button>
                           </Link>
                           <Link to={`/forecasting?datasetId=${d.id}`}>
-                            <Button variant="ghost" size="sm" className="h-7 text-xs text-cyan-300 hover:text-white">
+                            <Button variant="ghost" size="sm" className="h-7 px-2 text-xs text-cyan-300 hover:text-white">
                               <TrendingUp className="w-3 h-3 mr-1 text-cyan-400" />
                               Forecast
                             </Button>
                           </Link>
                           <Link to={`/models?datasetId=${d.id}`}>
-                            <Button variant="ghost" size="sm" className="h-7 text-xs text-purple-300 hover:text-white">
+                            <Button variant="ghost" size="sm" className="h-7 px-2 text-xs text-purple-300 hover:text-white">
                               <Cpu className="w-3 h-3 mr-1 text-purple-400" />
                               Build Model
                             </Button>
                           </Link>
                           <Link to={`/registry?datasetId=${d.id}`}>
-                            <Button variant="ghost" size="sm" className="h-7 text-xs text-indigo-300 hover:text-white">
+                            <Button variant="ghost" size="sm" className="h-7 px-2 text-xs text-indigo-300 hover:text-white">
                               <Layers className="w-3 h-3 mr-1 text-indigo-400" />
                               Models
                             </Button>
                           </Link>
                           <Link to={`/eda?datasetId=${d.id}`}>
-                            <Button variant="outline" size="sm" className="h-7 text-xs">
+                            <Button variant="outline" size="sm" className="h-7 px-2.5 text-xs">
                               <BarChart3 className="w-3 h-3 mr-1 text-purple-400" />
                               Explore Data
                             </Button>

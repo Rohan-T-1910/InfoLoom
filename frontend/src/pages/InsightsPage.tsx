@@ -126,20 +126,12 @@ export const InsightsPage: React.FC = () => {
       {/* Top Header & Dataset Selection */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-white/[0.08]">
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="font-mono text-xs uppercase tracking-widest text-purple-400">
-              Phase 8 • AI Business Intelligence
-            </span>
-            <Badge variant="outline" className="border-purple-500/30 text-purple-300 bg-purple-500/10 text-[10px]">
-              Deterministic Rules + NLG
-            </Badge>
-          </div>
           <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-3">
             <Sparkles className="w-6 h-6 text-purple-400" />
-            Automated Business Insights &amp; Signals
+            Business Insights
           </h1>
           <p className="text-xs text-slate-400 mt-1">
-            Deterministic rule-based heuristics across trends, concentrations, distributions, forecasts, and anomalies.
+            Automatically identify important trends, anomalies, and patterns in your data.
           </p>
         </div>
 
@@ -172,14 +164,14 @@ export const InsightsPage: React.FC = () => {
           <Link to={`/eda?datasetId=${effectiveId}`}>
             <Button variant="outline" size="sm" className="text-xs text-slate-300">
               <BarChart3 className="w-3.5 h-3.5 mr-1.5 text-purple-400" />
-              EDA
+              Explore Data
             </Button>
           </Link>
 
           <Link to={`/clustering?datasetId=${effectiveId}`}>
             <Button variant="outline" size="sm" className="text-xs text-slate-300">
               <Layers className="w-3.5 h-3.5 mr-1.5 text-purple-400" />
-              Clustering
+              Segmentation
             </Button>
           </Link>
 
@@ -207,12 +199,12 @@ export const InsightsPage: React.FC = () => {
           </div>
           <h3 className="text-lg font-semibold text-white mb-2">No Datasets Available</h3>
           <p className="text-sm text-slate-400 max-w-md mx-auto mb-6">
-            Upload a dataset to automatically synthesize statistical trends, top contributors, correlations, and business insights.
+            Upload a dataset to automatically identify important trends and findings in your data.
           </p>
           <Link to="/datasets">
             <Button size="default" className="bg-purple-600 hover:bg-purple-500 text-white">
               <Database className="w-4 h-4 mr-2" />
-              Upload First Dataset
+              Upload Dataset
             </Button>
           </Link>
         </Card>

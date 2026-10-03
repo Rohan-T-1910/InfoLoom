@@ -102,14 +102,14 @@ export const AnomalyDistributionChart: React.FC<AnomalyDistributionChartProps> =
           <div className="flex items-center gap-2">
             <BarChart2 className="w-5 h-5 text-purple-400" />
             <CardTitle className="text-base font-semibold text-white">
-              Isolation Score Distribution
+              Anomaly Score Distribution
             </CardTitle>
             <Badge variant="purple" className="text-[10px]">
               Histogram Bins
             </Badge>
           </div>
           <CardDescription className="text-xs text-slate-400 mt-1">
-            Scores below decision threshold ({thresholdScore.toFixed(4)}) have short average tree isolation depth and are classified as anomalies.
+            Records with scores below the decision threshold ({thresholdScore.toFixed(4)}) deviate significantly from normal patterns and are flagged as anomalies.
           </CardDescription>
         </div>
 

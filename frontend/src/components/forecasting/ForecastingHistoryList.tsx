@@ -59,7 +59,7 @@ export const ForecastingHistoryList: React.FC<ForecastingHistoryListProps> = ({
         </div>
         <h4 className="text-sm font-semibold text-white mb-1">No Forecast Models Yet</h4>
         <p className="text-xs text-slate-400 max-w-sm mx-auto">
-          Configure a date and numeric target column above to train an ARIMA model and project future trajectories.
+          Configure a date and numeric target column above to generate a forecast and project future trends.
         </p>
       </Card>
     );

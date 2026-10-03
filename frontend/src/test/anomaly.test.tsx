@@ -117,7 +117,7 @@ describe('Phase 7 Anomaly Detection Frontend Components', () => {
     );
 
     expect(screen.getByTestId('mock-bar-chart')).toBeInTheDocument();
-    expect(screen.getByText(/Isolation Score Distribution/i)).toBeInTheDocument();
+    expect(screen.getByText(/Anomaly Score Distribution/i)).toBeInTheDocument();
     expect(screen.getByText(/-0.045/i)).toBeInTheDocument();
   });
 

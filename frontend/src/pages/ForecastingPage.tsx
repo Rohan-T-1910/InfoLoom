@@ -124,20 +124,12 @@ export const ForecastingPage: React.FC = () => {
       {/* Top Header & Controls */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-white/[0.08]">
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="font-mono text-xs uppercase tracking-widest text-cyan-400">
-              Phase 6 • Predictive Analytics
-            </span>
-            <Badge variant="purple" className="text-[10px]">
-              Time Series Forecasting
-            </Badge>
-          </div>
           <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-3">
             <TrendingUp className="w-6 h-6 text-cyan-400" />
-            Time Series Forecasting Engine
+            Forecasting
           </h1>
           <p className="text-xs text-slate-400 mt-1">
-            Chronological ARIMA estimation, zero-leakage rolling backtests, MAPE diagnostics, and future trajectory projections with 95% confidence bounds.
+            Identify trends and estimate future values over time based on historical patterns.
           </p>
         </div>
 
@@ -183,21 +175,21 @@ export const ForecastingPage: React.FC = () => {
           <Link to={`/eda?datasetId=${effectiveId}`}>
             <Button variant="outline" size="sm" className="text-xs text-slate-300">
               <BarChart3 className="w-3.5 h-3.5 mr-1.5 text-purple-400" />
-              EDA
+              Explore Data
             </Button>
           </Link>
 
           <Link to={`/models?datasetId=${effectiveId}`}>
             <Button variant="outline" size="sm" className="text-xs text-slate-300">
               <Cpu className="w-3.5 h-3.5 mr-1.5 text-purple-400" />
-              Supervised ML
+              Predictive Modeling
             </Button>
           </Link>
 
           <Link to={`/clustering?datasetId=${effectiveId}`}>
             <Button variant="outline" size="sm" className="text-xs text-slate-300">
               <Network className="w-3.5 h-3.5 mr-1.5 text-purple-400" />
-              Clustering
+              Segmentation
             </Button>
           </Link>
         </div>
@@ -205,18 +197,18 @@ export const ForecastingPage: React.FC = () => {
 
       {/* No Datasets Empty State */}
       {!isLoadingDatasets && datasets.length === 0 && (
-        <Card className="border-white/[0.08] bg-[#0c0818]/90 p-12 text-center">
+        <Card className="border-white/[0.08] bg-[#0c0817]/90 p-12 text-center">
           <div className="w-16 h-16 rounded-2xl bg-cyan-600/10 border border-cyan-500/20 text-cyan-400 mx-auto flex items-center justify-center mb-4">
             <Calendar className="w-8 h-8" />
           </div>
           <h3 className="text-lg font-semibold text-white mb-2">No Datasets Available</h3>
           <p className="text-sm text-slate-400 max-w-md mx-auto mb-6">
-            Upload a time-series dataset containing a date/time column and numeric values to fit forecasting models and project future intervals.
+            Upload a dataset containing date and numeric columns to estimate future trends.
           </p>
           <Link to="/datasets">
             <Button variant="glow" size="default">
               <Database className="w-4 h-4 mr-2" />
-              Upload First Dataset
+              Upload Dataset
             </Button>
           </Link>
         </Card>
@@ -248,10 +240,10 @@ export const ForecastingPage: React.FC = () => {
                 <div className="flex items-center gap-2">
                   <span className="w-2.5 h-2.5 rounded-full bg-cyan-400" />
                   <h3 className="text-base font-semibold text-white">
-                    Active Forecast Model: {detailedModel.name}
+                    Active Forecast: {detailedModel.name}
                   </h3>
                   <Badge variant="purple" className="text-[10px]">
-                    ARIMA({detailedModel.model_order.join(', ')})
+                    {detailedModel.horizon} Period Horizon
                   </Badge>
                 </div>
                 <span className="text-xs text-slate-400 font-mono">

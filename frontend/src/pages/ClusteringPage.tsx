@@ -108,20 +108,12 @@ export const ClusteringPage: React.FC = () => {
       {/* Top Header & Controls */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-white/[0.08]">
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="font-mono text-xs uppercase tracking-widest text-purple-400">
-              Phase 5 • Unsupervised Learning
-            </span>
-            <Badge variant="purple" className="text-[10px]">
-              Customer Segmentation
-            </Badge>
-          </div>
           <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-3">
             <Network className="w-6 h-6 text-purple-400" />
-            Clustering & Segmentation Engine
+            Customer Segmentation
           </h1>
           <p className="text-xs text-slate-400 mt-1">
-            Standardized distance clustering, mathematical K selection (Elbow + Silhouette), segment profiles, and 2D visual projections.
+            Group similar records into meaningful segments to uncover distinct audience profiles and behavior patterns.
           </p>
         </div>
 
@@ -167,14 +159,14 @@ export const ClusteringPage: React.FC = () => {
           <Link to={`/eda?datasetId=${effectiveId}`}>
             <Button variant="outline" size="sm" className="text-xs text-slate-300">
               <BarChart3 className="w-3.5 h-3.5 mr-1.5 text-purple-400" />
-              View EDA
+              Explore Data
             </Button>
           </Link>
 
           <Link to={`/models?datasetId=${effectiveId}`}>
             <Button variant="outline" size="sm" className="text-xs text-slate-300">
               <Cpu className="w-3.5 h-3.5 mr-1.5 text-purple-400" />
-              Supervised ML
+              Predictive Modeling
             </Button>
           </Link>
         </div>
@@ -188,12 +180,12 @@ export const ClusteringPage: React.FC = () => {
           </div>
           <h3 className="text-lg font-semibold text-white mb-2">No Datasets Available</h3>
           <p className="text-sm text-slate-400 max-w-md mx-auto mb-6">
-            Upload a dataset to run unsupervised K-Means clustering, optimize cluster count with elbow curves, and profile customer segments.
+            Upload a dataset to group similar records into meaningful segments.
           </p>
           <Link to="/datasets">
             <Button variant="glow" size="default">
               <Database className="w-4 h-4 mr-2" />
-              Upload First Dataset
+              Upload Dataset
             </Button>
           </Link>
         </Card>

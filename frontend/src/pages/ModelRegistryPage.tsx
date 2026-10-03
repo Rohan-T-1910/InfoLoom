@@ -232,17 +232,11 @@ export const ModelRegistryPage: React.FC = () => {
       {/* Page Header */}
       <div className="relative overflow-hidden rounded-2xl border border-white/[0.08] bg-gradient-to-r from-purple-950/40 via-[#0e091b] to-[#080512] p-8 backdrop-blur-xl">
         <div className="relative z-10 max-w-4xl">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-purple-500/30 bg-purple-950/40 text-purple-300 text-xs font-semibold mb-4">
-            <Layers className="w-3.5 h-3.5" />
-            <span>Phase 10 Model Management & Lineage Registry</span>
-          </div>
-
           <h1 className="text-3xl font-bold tracking-tight text-white mb-2">
-            Model Registry & Version Lifecycle
+            Model Management
           </h1>
           <p className="text-sm text-slate-300 leading-relaxed mb-6">
-            Track, activate, rollback, test, and safely govern trained ML models across versions.
-            Ensure artifact integrity with physical file lineage and execute real-time production inference.
+            Manage your trained models and choose which version to use.
           </p>
 
           {/* Quick Metrics Bar */}
@@ -461,8 +455,7 @@ export const ModelRegistryPage: React.FC = () => {
           <Box className="w-12 h-12 text-slate-500 mx-auto mb-3" />
           <h3 className="text-base font-bold text-white mb-1">No Registered Models Found</h3>
           <p className="text-xs text-slate-400 max-w-md mx-auto mb-6">
-            Register trained machine learning models from Phase 4 to manage versions, promote active models,
-            and enable lineage tracking.
+            Manage your trained models and choose which version to use for predictions.
           </p>
           <div className="flex items-center justify-center gap-3">
             <Button
@@ -470,11 +463,11 @@ export const ModelRegistryPage: React.FC = () => {
               className="bg-purple-600 hover:bg-purple-500 text-white text-xs"
             >
               <Plus className="w-4 h-4 mr-1.5" />
-              Register First Model
+              Register Model
             </Button>
             <Link to="/models">
               <Button variant="outline" className="text-xs border-white/10 text-slate-300">
-                Train New ML Models
+                Build Model
                 <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
               </Button>
             </Link>
@@ -583,7 +576,7 @@ export const ModelRegistryPage: React.FC = () => {
                         <AlertCircle className="w-3.5 h-3.5 text-rose-400" />
                       )}
                       <span className={model.has_artifact ? 'text-slate-300' : 'text-rose-300'}>
-                        {model.has_artifact ? 'Artifact Verified' : 'Missing File'}
+                        {model.has_artifact ? 'Model Ready' : 'Unavailable'}
                       </span>
                     </div>
                     <span className="font-mono text-slate-400">
@@ -717,13 +710,13 @@ export const ModelRegistryPage: React.FC = () => {
                 {/* Trained Model Artifact Selector */}
                 <div>
                   <label className="block text-slate-300 font-semibold mb-1.5">
-                    Select Trained Model Artifact (Phase 4)
+                    Select Trained Model
                   </label>
                   {isLoadingTrainedModels ? (
                     <Skeleton className="h-10 w-full bg-white/5" />
                   ) : trainedModels.length === 0 ? (
                     <div className="p-3 rounded-lg border border-amber-500/30 bg-amber-950/20 text-amber-300">
-                      No trained models found for this dataset. Please train models in the ML Models tab first.
+                      No trained models found for this dataset. Please build a model first.
                     </div>
                   ) : (
                     <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
@@ -891,7 +884,7 @@ export const ModelRegistryPage: React.FC = () => {
                 Are you sure you want to permanently delete <strong>{modelToDelete.name} (v{modelToDelete.version})</strong>?
               </p>
               <div className="p-3 rounded-lg bg-rose-950/20 border border-rose-500/20 text-[11px] text-rose-200">
-                This action is irreversible. The database record and its associated physical model artifact will be safely deleted from storage.
+                This action is irreversible. The model version will be permanently removed.
               </div>
 
               <div className="flex items-center justify-end gap-3 pt-3 border-t border-white/[0.08]">

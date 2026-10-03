@@ -125,20 +125,12 @@ export const MLModelsPage: React.FC = () => {
       {/* Top Controls Bar */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-white/[0.08]">
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="font-mono text-xs uppercase tracking-widest text-purple-400">
-              Phase 4 • Machine Learning Core
-            </span>
-            <Badge variant="purple" className="text-[10px]">
-              Regression & Classification
-            </Badge>
-          </div>
           <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-3">
             <Cpu className="w-6 h-6 text-purple-400" />
-            Machine Learning Engine
+            Predictive Modeling
           </h1>
           <p className="text-xs text-slate-400 mt-1">
-            End-to-end model training, leak-free pipelines, cross-validation benchmarking, and real-time inference.
+            Build and compare models to predict outcomes and discover key drivers in your data.
           </p>
         </div>
 
@@ -184,7 +176,7 @@ export const MLModelsPage: React.FC = () => {
           <Link to={`/eda?datasetId=${effectiveId}`}>
             <Button variant="outline" size="sm" className="text-xs text-slate-300">
               <BarChart3 className="w-3.5 h-3.5 mr-1.5 text-purple-400" />
-              View EDA
+              Explore Data
             </Button>
           </Link>
         </div>
@@ -198,12 +190,12 @@ export const MLModelsPage: React.FC = () => {
           </div>
           <h3 className="text-lg font-semibold text-white mb-2">No Datasets Available</h3>
           <p className="text-sm text-slate-400 max-w-md mx-auto mb-6">
-            Upload your dataset to start training leak-free regression and classification models with automated benchmarking.
+            Upload a dataset to build models and predict outcomes from your data.
           </p>
           <Link to="/datasets">
             <Button variant="glow" size="default">
               <Database className="w-4 h-4 mr-2" />
-              Upload First Dataset
+              Upload Dataset
             </Button>
           </Link>
         </Card>
@@ -229,7 +221,7 @@ export const MLModelsPage: React.FC = () => {
               }`}
             >
               <Trophy className="w-4 h-4" />
-              Leaderboard & Metrics
+              Model Comparison
               {models.length > 0 && (
                 <span className="px-2 py-0.5 rounded-full text-[10px] bg-purple-500/20 text-purple-300">
                   {models.length}
@@ -247,7 +239,7 @@ export const MLModelsPage: React.FC = () => {
               }`}
             >
               <Sliders className="w-4 h-4" />
-              Train New Models
+              Build Model
             </button>
 
             <button
@@ -263,7 +255,7 @@ export const MLModelsPage: React.FC = () => {
               }`}
             >
               <Zap className="w-4 h-4" />
-              Live Prediction & Inference
+              Make Predictions
             </button>
           </div>
 
@@ -301,7 +293,7 @@ export const MLModelsPage: React.FC = () => {
               {/* Model Switcher */}
               <div className="flex items-center justify-between p-3.5 rounded-xl bg-[#0c0817] border border-white/[0.08]">
                 <div className="flex items-center gap-2 text-xs text-slate-300">
-                  <span className="text-slate-400">Inference Target Model:</span>
+                  <span className="text-slate-400">Selected Model:</span>
                   <select
                     value={selectedModelId}
                     onChange={(e) => setSelectedModelId(Number(e.target.value))}

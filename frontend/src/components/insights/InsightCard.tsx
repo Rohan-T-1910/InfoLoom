@@ -149,10 +149,10 @@ export const InsightCard: React.FC<InsightCardProps> = ({ fact, showPolished = t
               <span
                 onClick={() => setShowOriginal(!showOriginal)}
                 className="cursor-pointer inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono text-purple-300 bg-purple-500/10 border border-purple-500/30 hover:bg-purple-500/20 transition-colors"
-                title="Click to toggle between AI-polished phrasing and deterministic template text"
+                title="Click to toggle between executive phrasing and direct factual summary"
               >
                 <Sparkles className="w-2.5 h-2.5 text-purple-400" />
-                {showOriginal ? 'Template Text' : 'AI Phrased'}
+                {showOriginal ? 'Direct Facts' : 'Executive Phrasing'}
               </span>
             )}
           </div>
@@ -234,7 +234,7 @@ export const InsightCard: React.FC<InsightCardProps> = ({ fact, showPolished = t
           {isExpanded && (
             <div className="mt-2.5 p-3 rounded-xl bg-black/40 border border-white/[0.06] space-y-2 text-xs animate-in fade-in-50 duration-200">
               <div className="text-[11px] text-slate-400 font-mono flex items-center justify-between pb-1.5 border-b border-white/[0.06]">
-                <span>Deterministic Rule Verification</span>
+                <span>Data Verification</span>
                 <span className="text-emerald-400 font-medium">100% Data Backed</span>
               </div>
 

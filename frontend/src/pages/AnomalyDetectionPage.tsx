@@ -107,20 +107,12 @@ export const AnomalyDetectionPage: React.FC = () => {
       {/* Top Header & Controls */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-border/40">
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="font-mono text-xs uppercase tracking-widest text-rose-400">
-              Phase 7 • Unsupervised Outlier Detection
-            </span>
-            <Badge variant="outline" className="border-rose-500/30 text-rose-400 bg-rose-500/5 text-[10px]">
-              Isolation Forest
-            </Badge>
-          </div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-3">
             <ShieldAlert className="w-6 h-6 text-rose-500" />
-            Anomaly & Outlier Detection Engine
+            Anomaly Detection
           </h1>
           <p className="text-xs text-muted-foreground mt-1">
-            Unsupervised tree isolation, deterministic scoring, contamination thresholds, and feature-level root cause explanations.
+            Find unusual records, spikes, and patterns that may need attention or investigation.
           </p>
         </div>
 
@@ -166,14 +158,14 @@ export const AnomalyDetectionPage: React.FC = () => {
           <Link to={`/eda?datasetId=${effectiveId}`}>
             <Button variant="outline" size="sm" className="text-xs text-muted-foreground hover:text-foreground">
               <BarChart3 className="w-3.5 h-3.5 mr-1.5 text-primary" />
-              EDA
+              Explore Data
             </Button>
           </Link>
 
           <Link to={`/clustering?datasetId=${effectiveId}`}>
             <Button variant="outline" size="sm" className="text-xs text-muted-foreground hover:text-foreground">
               <Layers className="w-3.5 h-3.5 mr-1.5 text-purple-400" />
-              Clustering
+              Segmentation
             </Button>
           </Link>
 
@@ -194,12 +186,12 @@ export const AnomalyDetectionPage: React.FC = () => {
           </div>
           <h3 className="text-lg font-semibold text-foreground mb-2">No Datasets Available</h3>
           <p className="text-sm text-muted-foreground max-w-md mx-auto mb-6">
-            Upload a dataset to train Isolation Forest models, evaluate outlier scores, isolate severe anomalies, and view root cause feature deviations.
+            Upload a dataset to find unusual records and patterns that may need attention.
           </p>
           <Link to="/datasets">
             <Button size="default" className="bg-rose-600 hover:bg-rose-500 text-white">
               <Database className="w-4 h-4 mr-2" />
-              Upload First Dataset
+              Upload Dataset
             </Button>
           </Link>
         </Card>

@@ -106,7 +106,7 @@ export const AnomalousRowsTable: React.FC<AnomalousRowsTableProps> = ({
             </Badge>
           </div>
           <CardDescription className="text-xs text-slate-400 mt-1">
-            Outliers detected by Isolation Forest with standard deviation deviations relative to inlier baseline.
+            Outliers detected with standard deviation deviations relative to the normal baseline.
           </CardDescription>
         </div>
 

@@ -151,10 +151,10 @@ export const ClusteringConfig: React.FC<ClusteringConfigProps> = ({
             </div>
             <div>
               <CardTitle className="text-lg text-white font-semibold">
-                K-Means Segmentation Setup
+                Customer Segmentation Setup
               </CardTitle>
               <CardDescription className="text-xs text-slate-400">
-                Distance-sensitive clustering with automatic StandardScaler, elbow evaluation, and segment profiling.
+                Configure features and segment count to discover natural groupings in your data.
               </CardDescription>
             </div>
           </div>
@@ -353,7 +353,7 @@ export const ClusteringConfig: React.FC<ClusteringConfigProps> = ({
               ) : (
                 <span className="flex items-center gap-1.5">
                   <Sparkles className="w-3.5 h-3.5 text-purple-400" />
-                  Evaluate K Range (Elbow & Silhouette)
+                  Find Recommended Number of Segments
                 </span>
               )}
             </Button>
@@ -364,13 +364,13 @@ export const ClusteringConfig: React.FC<ClusteringConfigProps> = ({
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pt-2">
           <div className="w-full sm:max-w-sm space-y-1.5">
             <label className="text-xs font-semibold text-slate-300">
-              Segmentation Run Name (Optional)
+              Segmentation Name (Optional)
             </label>
             <input
               type="text"
               value={modelName}
               onChange={(e) => setModelName(e.target.value)}
-              placeholder={`e.g. Customer Segmentation (K=${selectedK})`}
+              placeholder={`e.g. Customer Segments (K=${selectedK})`}
               className="w-full bg-[#120d24] border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-purple-500 transition-colors"
             />
           </div>
@@ -386,12 +386,12 @@ export const ClusteringConfig: React.FC<ClusteringConfigProps> = ({
             {runMutation.isPending || isClusteringActive ? (
               <span className="flex items-center gap-2">
                 <div className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
-                Fitting K-Means & Profiling...
+                Creating Segments...
               </span>
             ) : (
               <span className="flex items-center gap-2">
                 <Network className="w-4 h-4" />
-                Run K-Means (K={selectedK}) & Profile Segments
+                Create {selectedK} Segments
                 <ArrowRight className="w-4 h-4 ml-1" />
               </span>
             )}

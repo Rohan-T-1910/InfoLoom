@@ -34,14 +34,14 @@ interface NavItem {
 const navItems: NavItem[] = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Datasets', href: '/datasets', icon: Database },
-  { name: 'Analysis / EDA', href: '/eda', icon: BarChart3, badge: 'Phase 3' },
-  { name: 'ML Models', href: '/models', icon: Cpu, badge: 'Phase 4' },
-  { name: 'Clustering', href: '/clustering', icon: Network, badge: 'Phase 5' },
-  { name: 'Forecasting', href: '/forecasting', icon: TrendingUp, badge: 'Phase 6' },
-  { name: 'Anomaly Detection', href: '/anomalies', icon: ShieldAlert, badge: 'Phase 7' },
-  { name: 'Insights', href: '/insights', icon: Sparkles, badge: 'Phase 8' },
-  { name: 'Reports & Export', href: '/reports', icon: FileSpreadsheet, badge: 'Phase 9' },
-  { name: 'Model Registry', href: '/registry', icon: Layers, badge: 'Phase 10' },
+  { name: 'Explore Data', href: '/eda', icon: BarChart3 },
+  { name: 'Predictive Modeling', href: '/models', icon: Cpu },
+  { name: 'Segmentation', href: '/clustering', icon: Network },
+  { name: 'Forecasting', href: '/forecasting', icon: TrendingUp },
+  { name: 'Anomaly Detection', href: '/anomalies', icon: ShieldAlert },
+  { name: 'Business Insights', href: '/insights', icon: Sparkles },
+  { name: 'Reports & Exports', href: '/reports', icon: FileSpreadsheet },
+  { name: 'Model Management', href: '/registry', icon: Layers },
   { name: 'History', href: '/history', icon: History },
   { name: 'Profile / Settings', href: '/settings', icon: Settings },
 ];
@@ -218,9 +218,6 @@ export const AppShell: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-3">
-            <Badge variant="purple" className="text-xs hidden sm:inline-flex">
-              FastAPI v1 Engine Active
-            </Badge>
             <NavLink to="/datasets">
               <Button size="sm" variant="default" className="text-xs h-8">
                 + Upload Data

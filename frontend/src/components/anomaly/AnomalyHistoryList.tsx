@@ -37,7 +37,7 @@ export const AnomalyHistoryList: React.FC<AnomalyHistoryListProps> = ({
         </div>
         <h4 className="text-sm font-semibold text-foreground mb-1">No Anomaly Detection Runs Yet</h4>
         <p className="text-xs text-muted-foreground max-w-sm mx-auto">
-          Select features and adjust the contamination threshold above to execute your first Isolation Forest detection.
+          Select features and adjust the expected outlier percentage above to run your first anomaly detection.
         </p>
       </Card>
     );

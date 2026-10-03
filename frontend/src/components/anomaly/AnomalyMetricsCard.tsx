@@ -131,7 +131,7 @@ export const AnomalyMetricsCard: React.FC<AnomalyMetricsCardProps> = ({ model })
           </span>
           <span className="text-slate-500">•</span>
           <span className="font-mono text-slate-400">
-            Algorithm: Isolation Forest (iForest)
+            Detection Mode: Multi-Feature Outlier Analysis
           </span>
         </div>
       </div>

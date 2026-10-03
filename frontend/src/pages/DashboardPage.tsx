@@ -28,9 +28,14 @@ export const DashboardPage: React.FC = () => {
     queryFn: () => api.listDatasets(0, 50),
   });
 
+  const { data: modelsData, isLoading: modelsLoading } = useQuery({
+    queryKey: ['registeredModels'],
+    queryFn: () => api.listRegisteredModels({ limit: 100 }),
+  });
+
   const datasets = datasetsData?.items || [];
-  const cleanedCount = datasets.filter((d) => d.has_cleaned).length;
   const totalRows = datasets.reduce((acc, d) => acc + (d.row_count || 0), 0);
+  const modelsCount = modelsData?.total ?? modelsData?.items?.length ?? 0;
 
   return (
     <div className="space-y-8">
@@ -39,26 +44,25 @@ export const DashboardPage: React.FC = () => {
         <div className="relative z-10 max-w-2xl">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-purple-500/30 bg-purple-950/40 text-purple-300 text-xs font-semibold mb-4">
             <Sparkles className="w-3.5 h-3.5" />
-            <span>Autonomous AI Data Intelligence</span>
+            <span>Data Intelligence & Analytics</span>
           </div>
           <h1 className="text-3xl font-bold tracking-tight text-white mb-2">
-            InfoLoom Control Center
+            Welcome to InfoLoom
           </h1>
           <p className="text-sm text-slate-300 leading-relaxed mb-6">
-            Autonomous ingestion, rigorous statistical validation, automated data cleaning pipelines, and
-            deep exploratory data analysis with baseline machine learning feature importances.
+            Explore trends, build predictive models, discover customer segments, identify anomalies, and create executive reports from your data.
           </p>
           <div className="flex flex-wrap items-center gap-3">
             <Link to="/eda">
               <Button variant="glow" size="default">
                 <BarChart3 className="w-4 h-4 mr-2" />
-                Launch EDA Engine
+                Explore Data
               </Button>
             </Link>
             <Link to="/models">
               <Button variant="outline" size="default">
                 <Cpu className="w-4 h-4 mr-2 text-purple-400" />
-                Train ML Models
+                Predictive Modeling
               </Button>
             </Link>
             <Link to="/clustering">
@@ -70,13 +74,13 @@ export const DashboardPage: React.FC = () => {
             <Link to="/reports">
               <Button variant="outline" size="default">
                 <FileSpreadsheet className="w-4 h-4 mr-2 text-purple-400" />
-                Reports & Export
+                Reports & Exports
               </Button>
             </Link>
             <Link to="/datasets">
               <Button variant="outline" size="default">
                 <Upload className="w-4 h-4 mr-2" />
-                Manage Datasets
+                Upload Dataset
               </Button>
             </Link>
           </div>
@@ -90,59 +94,63 @@ export const DashboardPage: React.FC = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         <Card className="p-5 border border-white/[0.08] bg-[#0c0818]/90">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-xs text-slate-400 font-medium">Ingested Datasets</span>
+            <span className="text-xs text-slate-400 font-medium">Datasets</span>
             <div className="p-2 rounded-lg bg-purple-950/50 text-purple-400">
               <Database className="w-4 h-4" />
             </div>
           </div>
           <div className="text-2xl font-bold text-white font-mono">{isLoading ? '...' : datasets.length}</div>
-          <div className="text-xs text-slate-400 mt-1">Multi-tenant storage</div>
+          <div className="text-xs text-slate-400 mt-1">Uploaded datasets</div>
         </Card>
 
         <Card className="p-5 border border-white/[0.08] bg-[#0c0818]/90">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-xs text-slate-400 font-medium">Cleaned Pipelines</span>
-            <div className="p-2 rounded-lg bg-emerald-950/50 text-emerald-400">
-              <ShieldCheck className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="text-2xl font-bold text-white font-mono">{isLoading ? '...' : cleanedCount}</div>
-          <div className="text-xs text-slate-400 mt-1">
-            {datasets.length > 0 ? `${Math.round((cleanedCount / datasets.length) * 100)}% cleaned` : '0%'}
-          </div>
-        </Card>
-
-        <Card className="p-5 border border-white/[0.08] bg-[#0c0818]/90">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-xs text-slate-400 font-medium">Total Data Records</span>
+            <span className="text-xs text-slate-400 font-medium">Records Analyzed</span>
             <div className="p-2 rounded-lg bg-indigo-950/50 text-indigo-400">
-              <Cpu className="w-4 h-4" />
+              <BarChart3 className="w-4 h-4" />
             </div>
           </div>
           <div className="text-2xl font-bold text-white font-mono">{isLoading ? '...' : totalRows.toLocaleString()}</div>
-          <div className="text-xs text-slate-400 mt-1">Active rows in system</div>
+          <div className="text-xs text-slate-400 mt-1">Total data records</div>
         </Card>
 
         <Card className="p-5 border border-white/[0.08] bg-[#0c0818]/90">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-xs text-slate-400 font-medium">Phase 6 Status</span>
+            <span className="text-xs text-slate-400 font-medium">Models Created</span>
+            <div className="p-2 rounded-lg bg-purple-950/50 text-purple-400">
+              <Cpu className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="text-2xl font-bold text-white font-mono">{modelsLoading ? '...' : modelsCount}</div>
+          <div className="text-xs text-slate-400 mt-1">Trained predictive models</div>
+        </Card>
+
+        <Card className="p-5 border border-white/[0.08] bg-[#0c0818]/90">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-xs text-slate-400 font-medium">Insights Available</span>
+            <div className="p-2 rounded-lg bg-emerald-950/50 text-emerald-400">
+              <Sparkles className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="text-2xl font-bold text-emerald-400 font-mono">
+            {datasets.length > 0 ? 'Active' : '0'}
+          </div>
+          <div className="text-xs text-slate-400 mt-1">
+            {datasets.length > 0 ? 'Automated key findings' : 'Upload data to generate'}
+          </div>
+        </Card>
+
+        <Card className="p-5 border border-white/[0.08] bg-[#0c0818]/90">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-xs text-slate-400 font-medium">Reports Generated</span>
             <div className="p-2 rounded-lg bg-cyan-950/50 text-cyan-400">
-              <TrendingUp className="w-4 h-4 text-cyan-400" />
+              <FileSpreadsheet className="w-4 h-4" />
             </div>
           </div>
-          <div className="text-lg font-bold text-cyan-400">Forecasting Active</div>
-          <div className="text-xs text-slate-400 mt-1">ARIMA + Backtesting Ready</div>
-        </Card>
-
-        <Card className="p-5 border border-white/[0.08] bg-[#0c0818]/90">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-xs text-slate-400 font-medium">Phase 7 Status</span>
-            <div className="p-2 rounded-lg bg-rose-950/50 text-rose-400">
-              <ShieldAlert className="w-4 h-4 text-rose-400" />
-            </div>
+          <div className="text-2xl font-bold text-cyan-400 font-mono">
+            {datasets.length > 0 ? 'Ready' : '0'}
           </div>
-          <div className="text-lg font-bold text-rose-400">Outlier Shield</div>
-          <div className="text-xs text-slate-400 mt-1">Isolation Forest Ready</div>
+          <div className="text-xs text-slate-400 mt-1">PDF & CSV exports</div>
         </Card>
       </div>
 
@@ -152,7 +160,7 @@ export const DashboardPage: React.FC = () => {
           <div>
             <CardTitle className="text-base font-semibold text-white">Your Datasets</CardTitle>
             <CardDescription className="text-xs text-slate-400">
-              Access exploratory analysis, validation audits, and cleaned pipelines
+              View, explore, and analyze your uploaded data files
             </CardDescription>
           </div>
           <Link to="/datasets">
@@ -171,7 +179,7 @@ export const DashboardPage: React.FC = () => {
             </div>
           ) : datasets.length === 0 ? (
             <div className="p-12 text-center text-slate-500 text-xs">
-              No datasets uploaded yet. Upload a dataset to begin exploratory data analysis.
+              No datasets uploaded yet. Upload a dataset to start exploring your data and discovering useful patterns.
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -181,7 +189,7 @@ export const DashboardPage: React.FC = () => {
                     <th className="py-3 px-4">Filename</th>
                     <th className="py-3 px-3">Dimensions</th>
                     <th className="py-3 px-3">File Size</th>
-                    <th className="py-3 px-3">Cleaning Status</th>
+                    <th className="py-3 px-3">Status</th>
                     <th className="py-3 px-3">Uploaded</th>
                     <th className="py-3 px-4 text-right">Actions</th>
                   </tr>
@@ -232,19 +240,19 @@ export const DashboardPage: React.FC = () => {
                           <Link to={`/models?datasetId=${d.id}`}>
                             <Button variant="ghost" size="sm" className="h-7 text-xs text-purple-300 hover:text-white">
                               <Cpu className="w-3 h-3 mr-1 text-purple-400" />
-                              Train ML
+                              Build Model
                             </Button>
                           </Link>
                           <Link to={`/registry?datasetId=${d.id}`}>
                             <Button variant="ghost" size="sm" className="h-7 text-xs text-indigo-300 hover:text-white">
                               <Layers className="w-3 h-3 mr-1 text-indigo-400" />
-                              Registry
+                              Models
                             </Button>
                           </Link>
                           <Link to={`/eda?datasetId=${d.id}`}>
                             <Button variant="outline" size="sm" className="h-7 text-xs">
                               <BarChart3 className="w-3 h-3 mr-1 text-purple-400" />
-                              Analyze EDA
+                              Explore Data
                             </Button>
                           </Link>
                         </div>

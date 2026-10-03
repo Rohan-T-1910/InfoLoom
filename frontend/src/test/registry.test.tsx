@@ -142,9 +142,8 @@ describe('Phase 10 Model Registry & Management Page', () => {
   it('renders header, active model spotlight, and model version cards', async () => {
     renderComponent();
 
-    // Verify Title & Eyebrow
-    expect(screen.getByText('Model Registry & Version Lifecycle')).toBeInTheDocument();
-    expect(screen.getByText(/Phase 10 Model Management/i)).toBeInTheDocument();
+    // Verify Title
+    expect(screen.getByText('Model Management')).toBeInTheDocument();
 
     // Verify Active Spotlight
     expect(await screen.findByText('ACTIVE PRODUCTION MODEL')).toBeInTheDocument();

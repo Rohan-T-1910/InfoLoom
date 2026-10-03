@@ -62,7 +62,7 @@ export const ForecastEvaluationCard: React.FC<ForecastEvaluationCardProps> = ({
         tension: 0.2,
       },
       {
-        label: `ARIMA Backtest Prediction (${evaluation.model_name})`,
+        label: `Backtest Prediction (${evaluation.model_name})`,
         data: predicted,
         borderColor: '#38bdf8',
         backgroundColor: 'rgba(56, 189, 248, 0.2)',

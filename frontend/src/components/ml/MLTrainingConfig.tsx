@@ -187,7 +187,7 @@ export const MLTrainingConfig: React.FC<MLTrainingConfigProps> = ({
                 Model Training Configuration
               </CardTitle>
               <CardDescription className="text-xs text-slate-400">
-                Automated leak-free preprocessing, cross-validation, and multi-model benchmarking.
+                Automated preprocessing, validation, and multi-model benchmarking.
               </CardDescription>
             </div>
           </div>
@@ -319,7 +319,7 @@ export const MLTrainingConfig: React.FC<MLTrainingConfigProps> = ({
           <label className="text-xs font-semibold text-slate-300 flex items-center justify-between">
             <span>Model Comparison Suite ({selectedAlgorithms.length} selected)</span>
             <span className="text-[11px] text-slate-400 font-normal">
-              All chosen models train under identical leak-free test folds
+              Models are evaluated using consistent validation sets for fair comparison
             </span>
           </label>
 
@@ -377,7 +377,7 @@ export const MLTrainingConfig: React.FC<MLTrainingConfigProps> = ({
               className="w-full accent-purple-500 cursor-pointer"
             />
             <p className="text-[11px] text-slate-400">
-              Split occurs prior to fitting pipelines to prevent data leakage.
+              Data is held out before model training to evaluate generalization.
             </p>
           </div>
 
@@ -461,7 +461,7 @@ export const MLTrainingConfig: React.FC<MLTrainingConfigProps> = ({
             {trainMutation.isPending ? (
               <span className="flex items-center gap-2">
                 <div className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
-                Scheduling ML Suite...
+                Starting Model Training...
               </span>
             ) : isTrainingActive ? (
               <span className="flex items-center gap-2">
@@ -471,7 +471,7 @@ export const MLTrainingConfig: React.FC<MLTrainingConfigProps> = ({
             ) : (
               <span className="flex items-center gap-2">
                 <Sparkles className="w-4 h-4" />
-                Train & Benchmark {selectedAlgorithms.length} Models
+                Build {selectedAlgorithms.length} Models
                 <ArrowRight className="w-4 h-4 ml-1" />
               </span>
             )}

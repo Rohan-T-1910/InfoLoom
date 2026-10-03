@@ -103,14 +103,11 @@ export const EDAPage: React.FC = () => {
           <div className="flex items-center gap-2">
             <h1 className="text-2xl font-bold text-white tracking-tight flex items-center gap-2.5">
               <BarChart3 className="w-6 h-6 text-purple-400" />
-              <span>Exploratory Data Analysis (EDA)</span>
+              <span>Explore Your Data</span>
             </h1>
-            <Badge variant="purple" className="text-xs">
-              Phase 3 Engine
-            </Badge>
           </div>
           <p className="text-xs text-slate-400 mt-1">
-            Autonomous statistical profiling, parametric analysis, correlation matrices, and baseline feature importance.
+            Explore trends, patterns, distributions, and relationships in your data.
           </p>
         </div>
 
@@ -151,7 +148,7 @@ export const EDAPage: React.FC = () => {
                   !useCleaned ? 'bg-purple-600 text-white font-medium shadow-sm' : 'text-slate-400 hover:text-white'
                 }`}
               >
-                Raw Data
+                Original Data
               </button>
             </div>
           )}
@@ -162,7 +159,7 @@ export const EDAPage: React.FC = () => {
               <Link to={`/models?datasetId=${effectiveId}`}>
                 <Button variant="glow" size="sm" className="text-xs h-9">
                   <Cpu className="w-3.5 h-3.5 mr-1.5" />
-                  Train ML Models
+                  Predictive Modeling
                 </Button>
               </Link>
               <Button
@@ -173,7 +170,7 @@ export const EDAPage: React.FC = () => {
                 className="text-xs h-9"
               >
                 <RefreshCw className={`w-3.5 h-3.5 mr-1.5 ${refreshMutation.isPending || isFetching ? 'animate-spin' : ''}`} />
-                Recompute EDA
+                Refresh Analysis
               </Button>
             </div>
           )}
@@ -188,7 +185,7 @@ export const EDAPage: React.FC = () => {
               <>
                 <Clock className="w-3.5 h-3.5 text-purple-400" />
                 <span className="text-slate-300">
-                  Response retrieved from <strong className="text-purple-300">EDA Persistent Cache</strong>
+                  Loaded from <strong className="text-purple-300">saved analysis</strong>
                 </span>
                 {edaData.created_at && (
                   <span className="text-slate-500 font-mono text-[11px]">
@@ -199,7 +196,7 @@ export const EDAPage: React.FC = () => {
             ) : (
               <>
                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                <span className="text-emerald-300 font-medium">Real-time Computed and Cached</span>
+                <span className="text-emerald-300 font-medium">Computed in real time</span>
               </>
             )}
           </div>
@@ -208,7 +205,7 @@ export const EDAPage: React.FC = () => {
             <span className="text-slate-400">Dataset:</span>
             <span className="font-semibold text-slate-200">{currentDataset?.original_filename}</span>
             <Badge variant={edaData.is_cleaned ? 'success' : 'secondary'} className="text-[10px] px-1.5 py-0">
-              {edaData.is_cleaned ? 'Cleaned Version' : 'Raw Version'}
+              {edaData.is_cleaned ? 'Cleaned Data' : 'Original Data'}
             </Badge>
           </div>
         </div>
@@ -233,12 +230,11 @@ export const EDAPage: React.FC = () => {
           <Database className="w-12 h-12 text-purple-400 mx-auto mb-4 opacity-70" />
           <h3 className="text-lg font-semibold text-white mb-2">No Datasets Available</h3>
           <p className="text-xs text-slate-400 mb-6 leading-relaxed">
-            To run exploratory data analysis, upload a CSV dataset into InfoLoom. Our engine will automatically ingest,
-            validate, and extract statistical profiles.
+            Upload a dataset to start exploring your data and discovering useful patterns.
           </p>
           <Link to="/datasets">
             <Button variant="glow" size="default">
-              Upload Dataset Now
+              Upload Dataset
               <ArrowRight className="w-4 h-4 ml-2" />
             </Button>
           </Link>

@@ -144,14 +144,11 @@ export const ForecastingConfig: React.FC<ForecastingConfigProps> = ({
             <div className="flex items-center gap-2">
               <TrendingUp className="w-5 h-5 text-purple-400" />
               <CardTitle className="text-base font-semibold text-white">
-                Time Series Forecasting Configuration
+                Forecast Configuration
               </CardTitle>
-              <Badge variant="purple" className="text-[10px]">
-                ARIMA Engine
-              </Badge>
             </div>
             <CardDescription className="text-xs text-slate-400 mt-1">
-              Configure chronological target sequence, sample resolution, and projection horizon with rolling backtest validation.
+              Select date and target columns, choose time resolution, and set your future horizon.
             </CardDescription>
           </div>
 
@@ -168,7 +165,7 @@ export const ForecastingConfig: React.FC<ForecastingConfigProps> = ({
               htmlFor="use-cleaned-forecast"
               className="text-xs text-slate-300 cursor-pointer select-none font-medium"
             >
-              Use Cleaned Pipeline Data
+              Use Cleaned Data
             </label>
           </div>
         </div>
@@ -326,7 +323,7 @@ export const ForecastingConfig: React.FC<ForecastingConfigProps> = ({
               className="text-xs"
             >
               <Sparkles className={`w-3.5 h-3.5 mr-1.5 text-purple-400 ${isEvaluating ? 'animate-spin' : ''}`} />
-              {isEvaluating ? 'Evaluating Holdout...' : 'Evaluate Backtest'}
+              {isEvaluating ? 'Testing Accuracy...' : 'Test Accuracy'}
             </Button>
 
             <Button
@@ -337,7 +334,7 @@ export const ForecastingConfig: React.FC<ForecastingConfigProps> = ({
               className="text-xs"
             >
               <Play className={`w-3.5 h-3.5 mr-1.5 fill-current ${isRunning ? 'animate-pulse' : ''}`} />
-              {isRunning ? 'Fitting ARIMA Model...' : 'Train & Generate Forecast'}
+              {isRunning ? 'Generating Forecast...' : 'Generate Forecast'}
             </Button>
           </div>
         </div>

@@ -135,7 +135,7 @@ export const AnomalyConfig: React.FC<AnomalyConfigProps> = ({
       features: selectedFeatures,
       contamination: contamination,
       n_estimators: nEstimators,
-      name: modelName.trim() || `Isolation Forest (${(contamination * 100).toFixed(1)}% contamination)`,
+      name: modelName.trim() || `Anomaly Detection (${(contamination * 100).toFixed(1)}% sensitivity)`,
       use_cleaned: useCleaned,
     });
   };
@@ -157,16 +157,13 @@ export const AnomalyConfig: React.FC<AnomalyConfigProps> = ({
             </div>
             <div>
               <CardTitle className="text-lg font-semibold tracking-tight">
-                Isolation Forest Configuration
+                Anomaly Detection Configuration
               </CardTitle>
               <CardDescription className="text-xs">
-                Configure unsupervised anomaly detection parameters, select input features, and calibrate expected contamination rate.
+                Select features and adjust sensitivity to detect unusual records in your data.
               </CardDescription>
             </div>
           </div>
-          <Badge variant="outline" className="border-rose-500/30 text-rose-400 bg-rose-500/5 text-xs">
-            Phase 7 Engine
-          </Badge>
         </div>
       </CardHeader>
 
@@ -182,9 +179,9 @@ export const AnomalyConfig: React.FC<AnomalyConfigProps> = ({
         {dataset.has_cleaned && (
           <div className="flex items-center justify-between p-3 rounded-lg bg-muted/40 border border-border/40">
             <div>
-              <p className="text-xs font-semibold text-foreground">Cleaned Data Preprocessing Pipeline</p>
+              <p className="text-xs font-semibold text-foreground">Cleaned Data</p>
               <p className="text-[11px] text-muted-foreground">
-                Use Phase 2 cleaned & imputed dataset ({dataset.row_count} rows)
+                Use cleaned and validated dataset ({dataset.row_count} rows)
               </p>
             </div>
             <div className="flex items-center space-x-2">
@@ -371,7 +368,7 @@ export const AnomalyConfig: React.FC<AnomalyConfigProps> = ({
             </label>
             <input
               type="text"
-              placeholder={`e.g. Q4 Audit Isolation Forest`}
+              placeholder={`e.g. Q4 Audit Outlier Detection`}
               value={modelName}
               onChange={(e) => setModelName(e.target.value)}
               className="w-full h-8 px-3 text-xs bg-background/60 border border-border/60 rounded-md focus:outline-none focus:ring-1 focus:ring-rose-500/50"
@@ -386,7 +383,7 @@ export const AnomalyConfig: React.FC<AnomalyConfigProps> = ({
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-border/40">
           <div className="flex items-center space-x-1.5 text-xs text-muted-foreground">
             <HelpCircle className="h-3.5 w-3.5" />
-            <span>Deterministic isolation using median imputation & standard scaling</span>
+            <span>Scores records relative to normal patterns in the data</span>
           </div>
 
           <div className="flex items-center space-x-2 w-full sm:w-auto">
@@ -420,12 +417,12 @@ export const AnomalyConfig: React.FC<AnomalyConfigProps> = ({
               {runMutation.isPending || isDetecting ? (
                 <>
                   <RotateCcw className="h-3.5 w-3.5 mr-1.5 animate-spin" />
-                  Training Isolation Forest...
+                  Finding Anomalies...
                 </>
               ) : (
                 <>
                   <Play className="h-3.5 w-3.5 mr-1.5 fill-current" />
-                  Run Anomaly Detection
+                  Find Anomalies
                 </>
               )}
             </Button>

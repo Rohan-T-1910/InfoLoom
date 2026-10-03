@@ -51,28 +51,28 @@ export const SettingsPage: React.FC = () => {
           <CardHeader className="pb-3 border-b border-white/[0.06]">
             <CardTitle className="text-base font-semibold text-white flex items-center gap-2">
               <Server className="w-4 h-4 text-emerald-400" />
-              <span>Backend Engine Status</span>
+              <span>Platform Service Status</span>
             </CardTitle>
           </CardHeader>
           <CardContent className="p-6 space-y-4 text-xs">
             <div className="flex items-center justify-between pb-2 border-b border-white/[0.06]">
-              <span className="text-slate-400">API Gateway</span>
+              <span className="text-slate-400">Application API</span>
               <span className="font-mono text-emerald-400 flex items-center gap-1">
                 <CheckCircle2 className="w-3.5 h-3.5" />
-                FastAPI v1 Connected
+                Connected &amp; Operational
               </span>
             </div>
             <div className="flex items-center justify-between pb-2 border-b border-white/[0.06]">
-              <span className="text-slate-400">Database Layer</span>
-              <span className="font-mono text-purple-300">PostgreSQL + Alembic</span>
+              <span className="text-slate-400">Database Storage</span>
+              <span className="font-mono text-purple-300">Active</span>
             </div>
             <div className="flex items-center justify-between pb-2 border-b border-white/[0.06]">
-              <span className="text-slate-400">Phase 3 EDA Service</span>
-              <span className="font-mono text-emerald-400">Enabled with Cache</span>
+              <span className="text-slate-400">Data Exploration Service</span>
+              <span className="font-mono text-emerald-400">Active &amp; Optimized</span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-slate-400">Streaming Limit</span>
-              <span className="font-mono text-slate-300">100 MB Direct Stream</span>
+              <span className="text-slate-400">Upload Size Limit</span>
+              <span className="font-mono text-slate-300">100 MB per file</span>
             </div>
           </CardContent>
         </Card>

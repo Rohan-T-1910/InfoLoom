@@ -246,8 +246,9 @@ export interface MLJob {
 export interface MLModelDetail extends MLModelLeaderboardItem {
   job_id: number;
   dataset_id: number;
-  features_numeric: string[];
-  features_categorical: string[];
+  feature_names?: string[];
+  features_numeric?: string[];
+  features_categorical?: string[];
   target_column: string;
   target_classes?: string[] | null;
   cv_scores?: number[] | null;

@@ -5,13 +5,8 @@ import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import {
   Trophy,
-  BarChart2,
-  CheckCircle2,
-  ExternalLink,
-  Percent,
-  TrendingUp,
-  Cpu,
   Zap,
+  Award,
 } from 'lucide-react';
 
 interface MLLeaderboardProps {
@@ -36,8 +31,8 @@ export const MLLeaderboard: React.FC<MLLeaderboardProps> = ({
           <Trophy className="w-6 h-6" />
         </div>
         <h4 className="text-base font-semibold text-white mb-1">No Models Trained Yet</h4>
-        <p className="text-xs text-slate-400 max-w-sm mx-auto">
-          Configure a target column above and click "Train & Benchmark Models" to populate this leaderboard.
+        <p className="text-xs text-slate-400 max-w-sm mx-auto leading-relaxed">
+          Configure what you want to predict above and click "Train & Compare Models" to evaluate prediction approaches.
         </p>
       </Card>
     );
@@ -46,6 +41,8 @@ export const MLLeaderboard: React.FC<MLLeaderboardProps> = ({
   // Determine primary task type from first model
   const taskType = models[0]?.task_type || 'classification';
   const isRegression = taskType === 'regression';
+  const bestModel = models.find((m) => m.id === bestModelId || m.is_best) || models[0];
+  const bestModelName = bestModel?.algorithm_name || bestModel?.name || bestModel?.algorithm || 'Best Approach';
 
   return (
     <Card className="border-white/[0.08] bg-[#0c0817]/90 backdrop-blur-xl">
@@ -59,45 +56,115 @@ export const MLLeaderboard: React.FC<MLLeaderboardProps> = ({
               </CardTitle>
             </div>
             <CardDescription className="text-xs text-slate-400">
-              Ranked by {isRegression ? 'Test R² (higher is better)' : 'Test F1-Score (higher is better)'} across holdout test sets.
+              Evaluated and ranked on unseen holdout test data. Higher scores indicate greater prediction reliability.
             </CardDescription>
           </div>
 
           <Badge variant="purple" className="self-start sm:self-auto text-xs px-2.5 py-1">
-            {models.length} {models.length === 1 ? 'Model' : 'Models'} Evaluated
+            {models.length} {models.length === 1 ? 'Approach' : 'Approaches'} Compared
           </Badge>
         </div>
       </CardHeader>
 
       <CardContent className="p-0">
+        {/* Top Performer Banner */}
+        {bestModel && (
+          <div className="px-5 py-3.5 bg-gradient-to-r from-amber-500/10 via-purple-500/10 to-transparent border-b border-white/[0.06] flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div className="flex items-center gap-2.5 text-xs">
+              <Award className="w-4 h-4 text-amber-400 shrink-0" />
+              <span className="text-slate-300">
+                Top Performer:{' '}
+                <strong className="text-white">{bestModelName}</strong> achieved the strongest results on unseen data.
+              </span>
+            </div>
+            <Button
+              variant="glow"
+              size="sm"
+              onClick={() => onPredictWithModel(bestModel)}
+              className="h-7 text-xs self-start sm:self-auto"
+            >
+              <Zap className="w-3 h-3 mr-1" />
+              Predict with Best Model
+            </Button>
+          </div>
+        )}
+
+        {/* Metrics Guide Note */}
+        <div className="px-5 py-2.5 bg-black/20 border-b border-white/[0.04] text-[11px] text-slate-400 flex flex-wrap items-center gap-x-6 gap-y-1">
+          {isRegression ? (
+            <>
+              <span>
+                <strong className="text-slate-200">R² Score:</strong> How much variation in the outcome is explained by the model (higher is better, 1.0 is perfect).
+              </span>
+              <span>
+                <strong className="text-slate-200">RMSE / MAE:</strong> Average difference between predictions and actual values (lower is better).
+              </span>
+            </>
+          ) : (
+            <>
+              <span>
+                <strong className="text-slate-200">Accuracy:</strong> How often the model's predictions were correct overall.
+              </span>
+              <span>
+                <strong className="text-slate-200">F1-Score:</strong> Balanced reliability across all categories (higher is better).
+              </span>
+            </>
+          )}
+        </div>
+
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead>
               <tr className="border-b border-white/[0.06] text-slate-400 bg-white/[0.02]">
-                <th className="py-3.5 px-4 font-semibold">Rank & Algorithm</th>
+                <th className="py-3.5 px-4 font-semibold">Rank & Approach</th>
                 <th className="py-3.5 px-3 font-semibold text-right">
-                  Primary Metric ({isRegression ? 'R²' : 'F1'})
+                  Primary Score ({isRegression ? 'R²' : 'F1'})
                 </th>
                 {isRegression ? (
                   <>
-                    <th className="py-3.5 px-3 font-semibold text-right">RMSE</th>
-                    <th className="py-3.5 px-3 font-semibold text-right">MAE</th>
+                    <th className="py-3.5 px-3 font-semibold text-right" title="Root Mean Squared Error (lower is better)">
+                      RMSE
+                    </th>
+                    <th className="py-3.5 px-3 font-semibold text-right" title="Mean Absolute Error (lower is better)">
+                      MAE
+                    </th>
                   </>
                 ) : (
                   <>
-                    <th className="py-3.5 px-3 font-semibold text-right">Accuracy</th>
-                    <th className="py-3.5 px-3 font-semibold text-right">ROC-AUC</th>
+                    <th className="py-3.5 px-3 font-semibold text-right" title="Overall percentage of correct predictions">
+                      Accuracy
+                    </th>
+                    <th className="py-3.5 px-3 font-semibold text-right" title="Ranking discrimination">
+                      ROC-AUC
+                    </th>
                   </>
                 )}
-                <th className="py-3.5 px-3 font-semibold text-right">CV Score (Mean ± Std)</th>
+                <th className="py-3.5 px-3 font-semibold text-right" title="Cross-validation consistency across multiple data folds">
+                  Validation Consistency
+                </th>
                 <th className="py-3.5 px-4 font-semibold text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-white/[0.04]">
               {models.map((model, idx) => {
-                const isBest = model.id === bestModelId || idx === 0;
+                const isBest = model.id === bestModelId || model.is_best || idx === 0;
                 const isSelected = model.id === selectedModelId;
-                const metrics = model.test_metrics || {};
+                const metrics = model.metrics || model.test_metrics || {};
+                const modelName = model.algorithm_name || model.name || model.algorithm;
+
+                const primaryVal =
+                  model.primary_metric_value ??
+                  metrics.primary_metric ??
+                  metrics.r2 ??
+                  metrics.f1 ??
+                  null;
+
+                const cvMean = model.cv_mean ?? metrics.cv_mean ?? null;
+                const cvStd = model.cv_std ?? metrics.cv_std ?? null;
+                const rmse = metrics.rmse ?? null;
+                const mae = metrics.mae ?? null;
+                const accuracy = metrics.accuracy ?? null;
+                const rocAuc = metrics.roc_auc ?? null;
 
                 return (
                   <tr
@@ -130,7 +197,7 @@ export const MLLeaderboard: React.FC<MLLeaderboardProps> = ({
                         <div>
                           <div className="flex items-center gap-2">
                             <span className="font-semibold text-white text-sm">
-                              {model.algorithm_name}
+                              {modelName}
                             </span>
                             {isBest && (
                               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-400/20 text-amber-300 border border-amber-400/30">
@@ -138,8 +205,8 @@ export const MLLeaderboard: React.FC<MLLeaderboardProps> = ({
                               </span>
                             )}
                           </div>
-                          <span className="text-[11px] text-slate-400 font-mono">
-                            Model #{model.id} • {model.algorithm}
+                          <span className="text-[11px] text-slate-400">
+                            Model #{model.id}
                           </span>
                         </div>
                       </div>
@@ -148,8 +215,8 @@ export const MLLeaderboard: React.FC<MLLeaderboardProps> = ({
                     {/* Primary Metric */}
                     <td className="py-3.5 px-3 text-right">
                       <div className="font-mono text-sm font-bold text-white">
-                        {model.primary_metric_value != null
-                          ? model.primary_metric_value.toFixed(4)
+                        {typeof primaryVal === 'number'
+                          ? primaryVal.toFixed(4)
                           : 'N/A'}
                       </div>
                       <div className="w-20 ml-auto h-1.5 rounded-full bg-white/10 overflow-hidden mt-1">
@@ -160,7 +227,7 @@ export const MLLeaderboard: React.FC<MLLeaderboardProps> = ({
                           style={{
                             width: `${Math.min(
                               100,
-                              Math.max(0, (model.primary_metric_value || 0) * 100)
+                              Math.max(0, (typeof primaryVal === 'number' ? primaryVal : 0) * 100)
                             )}%`,
                           }}
                         />
@@ -171,32 +238,32 @@ export const MLLeaderboard: React.FC<MLLeaderboardProps> = ({
                     {isRegression ? (
                       <>
                         <td className="py-3.5 px-3 text-right font-mono text-slate-300">
-                          {metrics.rmse != null ? metrics.rmse.toFixed(4) : 'N/A'}
+                          {typeof rmse === 'number' ? rmse.toFixed(4) : 'N/A'}
                         </td>
                         <td className="py-3.5 px-3 text-right font-mono text-slate-300">
-                          {metrics.mae != null ? metrics.mae.toFixed(4) : 'N/A'}
+                          {typeof mae === 'number' ? mae.toFixed(4) : 'N/A'}
                         </td>
                       </>
                     ) : (
                       <>
                         <td className="py-3.5 px-3 text-right font-mono text-slate-300">
-                          {metrics.accuracy != null
-                            ? `${(metrics.accuracy * 100).toFixed(1)}%`
+                          {typeof accuracy === 'number'
+                            ? `${(accuracy * 100).toFixed(1)}%`
                             : 'N/A'}
                         </td>
                         <td className="py-3.5 px-3 text-right font-mono text-slate-300">
-                          {metrics.roc_auc != null ? metrics.roc_auc.toFixed(4) : '—'}
+                          {typeof rocAuc === 'number' ? rocAuc.toFixed(4) : '—'}
                         </td>
                       </>
                     )}
 
-                    {/* CV Score */}
+                    {/* CV Score Consistency */}
                     <td className="py-3.5 px-3 text-right font-mono text-slate-300">
-                      {model.cv_mean != null ? (
+                      {typeof cvMean === 'number' ? (
                         <span>
-                          {model.cv_mean.toFixed(4)}{' '}
+                          {cvMean.toFixed(4)}{' '}
                           <span className="text-slate-500 text-[10px]">
-                            ± {model.cv_std ? model.cv_std.toFixed(3) : '0.000'}
+                            ± {typeof cvStd === 'number' ? cvStd.toFixed(3) : '0.000'}
                           </span>
                         </span>
                       ) : (

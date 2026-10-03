@@ -8,13 +8,8 @@ import { Badge } from '../ui/badge';
 import {
   Zap,
   Sparkles,
-  ArrowRight,
   AlertCircle,
   CheckCircle2,
-  TrendingUp,
-  Binary,
-  RotateCcw,
-  Sliders,
 } from 'lucide-react';
 
 interface MLPredictionCardProps {
@@ -40,21 +35,23 @@ export const MLPredictionCard: React.FC<MLPredictionCardProps> = ({ modelId }) =
     enabled: Boolean(model?.dataset_id),
   });
 
+  const features: string[] =
+    model?.feature_names ||
+    (model as any)?.features_numeric?.concat((model as any)?.features_categorical) ||
+    [];
+
   // Initialize empty form state when model changes
   useEffect(() => {
     if (model) {
       const initial: Record<string, any> = {};
-      model.features_numeric.forEach((col) => {
-        initial[col] = '';
-      });
-      model.features_categorical.forEach((col) => {
+      features.forEach((col) => {
         initial[col] = '';
       });
       setFormData(initial);
       setPredictionResult(null);
       setErrorMsg(null);
     }
-  }, [model]);
+  }, [model, features.length]);
 
   // Fill sample values from the first row of preview data
   const handleFillSample = () => {
@@ -62,11 +59,7 @@ export const MLPredictionCard: React.FC<MLPredictionCardProps> = ({ modelId }) =
     const sampleRow = previewData.sample_rows[0];
     const filled: Record<string, any> = {};
 
-    model.features_numeric.forEach((col) => {
-      const val = sampleRow[col];
-      filled[col] = val != null ? String(val) : '0';
-    });
-    model.features_categorical.forEach((col) => {
+    features.forEach((col) => {
       const val = sampleRow[col];
       filled[col] = val != null ? String(val) : '';
     });
@@ -89,7 +82,7 @@ export const MLPredictionCard: React.FC<MLPredictionCardProps> = ({ modelId }) =
       setErrorMsg(null);
     },
     onError: (err: any) => {
-      setErrorMsg(err?.message || 'Inference execution failed.');
+      setErrorMsg(err?.message || 'Prediction calculation failed.');
     },
   });
 
@@ -100,8 +93,10 @@ export const MLPredictionCard: React.FC<MLPredictionCardProps> = ({ modelId }) =
     // Convert numeric inputs
     const parsedRow: Record<string, any> = {};
     for (const [key, val] of Object.entries(formData)) {
-      if (model.features_numeric.includes(key)) {
-        parsedRow[key] = val === '' || isNaN(Number(val)) ? null : Number(val);
+      if (val === '' || val === null || val === undefined) {
+        parsedRow[key] = null;
+      } else if (typeof val === 'string' && val.trim() !== '' && !isNaN(Number(val))) {
+        parsedRow[key] = Number(val);
       } else {
         parsedRow[key] = val;
       }
@@ -122,7 +117,17 @@ export const MLPredictionCard: React.FC<MLPredictionCardProps> = ({ modelId }) =
   if (!model) return null;
 
   const isRegression = model.task_type === 'regression';
-  const predictionItem = predictionResult?.predictions?.[0];
+  const rawPrediction = predictionResult?.predictions?.[0];
+  const predictionValue =
+    rawPrediction != null && typeof rawPrediction === 'object' && 'prediction' in rawPrediction
+      ? (rawPrediction as any).prediction
+      : rawPrediction;
+  const probabilities =
+    predictionResult?.probabilities?.[0] ||
+    (rawPrediction != null && typeof rawPrediction === 'object' ? (rawPrediction as any).probabilities : null);
+  const hasPrediction =
+    predictionResult != null && predictionValue !== undefined && predictionValue !== null;
+  const modelName = model.algorithm_name || model.name || model.algorithm || 'Model';
 
   return (
     <Card className="border-white/[0.08] bg-[#0c0817]/90 backdrop-blur-xl">
@@ -135,14 +140,14 @@ export const MLPredictionCard: React.FC<MLPredictionCardProps> = ({ modelId }) =
             <div>
               <div className="flex items-center gap-2">
                 <CardTitle className="text-base text-white font-semibold">
-                  Interactive Live Inference
+                  Make Predictions on New Data
                 </CardTitle>
                 <Badge variant="purple" className="text-[10px]">
-                  Model #{model.id} • {model.algorithm_name}
+                  Model #{model.id} • {modelName}
                 </Badge>
               </div>
               <CardDescription className="text-xs text-slate-400">
-                Input feature values to compute real-time model predictions.
+                Use your trained model to make predictions on new data. Enter input values below or autofill sample data.
               </CardDescription>
             </div>
           </div>
@@ -155,7 +160,7 @@ export const MLPredictionCard: React.FC<MLPredictionCardProps> = ({ modelId }) =
             className="text-xs text-slate-300"
           >
             <Sparkles className="w-3.5 h-3.5 mr-1 text-purple-400" />
-            Autofill Sample Row
+            Autofill Sample Data
           </Button>
         </div>
       </CardHeader>
@@ -171,49 +176,22 @@ export const MLPredictionCard: React.FC<MLPredictionCardProps> = ({ modelId }) =
 
           {/* Form Inputs Grid */}
           <div className="space-y-4">
-            {/* Numerical Features */}
-            {model.features_numeric.length > 0 && (
+            {features.length > 0 && (
               <div className="space-y-2">
-                <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider block">
-                  Numerical Features (Standardized & Imputed)
+                <span className="text-xs font-semibold text-slate-300 block">
+                  Model Input Fields ({features.length} {features.length === 1 ? 'field' : 'fields'})
                 </span>
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                  {model.features_numeric.map((col) => (
+                  {features.map((col) => (
                     <div key={col} className="space-y-1">
-                      <label className="text-[11px] font-mono text-slate-300 truncate block">
-                        {col}
-                      </label>
-                      <input
-                        type="number"
-                        step="any"
-                        value={formData[col] ?? ''}
-                        onChange={(e) => handleInputChange(col, e.target.value)}
-                        placeholder="e.g. 42.5"
-                        className="w-full bg-[#120d24] border border-white/10 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-purple-500 font-mono transition-colors"
-                      />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Categorical Features */}
-            {model.features_categorical.length > 0 && (
-              <div className="space-y-2 pt-2">
-                <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider block">
-                  Categorical Features (One-Hot Encoded)
-                </span>
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                  {model.features_categorical.map((col) => (
-                    <div key={col} className="space-y-1">
-                      <label className="text-[11px] font-mono text-slate-300 truncate block">
+                      <label className="text-[11px] font-medium text-slate-300 truncate block">
                         {col}
                       </label>
                       <input
                         type="text"
                         value={formData[col] ?? ''}
                         onChange={(e) => handleInputChange(col, e.target.value)}
-                        placeholder="e.g. Category A"
+                        placeholder={`Enter ${col}...`}
                         className="w-full bg-[#120d24] border border-white/10 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-purple-500 transition-colors"
                       />
                     </div>
@@ -233,10 +211,10 @@ export const MLPredictionCard: React.FC<MLPredictionCardProps> = ({ modelId }) =
               {predictMutation.isPending ? (
                 <span className="flex items-center gap-2">
                   <div className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
-                  Predicting...
+                  Calculating Prediction...
                 </span>
               ) : (
-                <span className="flex items-center gap-2">
+                <span className="flex items-center gap-2 font-semibold">
                   <Zap className="w-4 h-4" />
                   Generate Prediction
                 </span>
@@ -246,44 +224,45 @@ export const MLPredictionCard: React.FC<MLPredictionCardProps> = ({ modelId }) =
         </form>
 
         {/* Prediction Results Banner */}
-        {predictionItem && (
-          <div className="mt-6 p-5 rounded-2xl bg-gradient-to-r from-purple-950/40 via-[#140e29] to-[#0c0817] border border-purple-500/30 space-y-4">
+        {hasPrediction && (
+          <div className="mt-6 p-5 rounded-2xl bg-gradient-to-r from-purple-950/40 via-[#140e29] to-[#0c0817] border border-purple-500/30 space-y-4 animate-in fade-in duration-200">
             <div className="flex items-center justify-between">
-              <span className="text-xs text-slate-400 font-semibold uppercase tracking-wider">
-                Inference Result
+              <span className="text-xs text-slate-400 font-semibold uppercase tracking-wider flex items-center gap-1.5">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                Prediction Result
               </span>
               <Badge variant="purple" className="text-[10px]">
-                Target: {model.target_column}
+                Predicting: {model.target_column}
               </Badge>
             </div>
 
             <div className="flex flex-col sm:flex-row sm:items-baseline gap-3">
-              <span className="text-xs text-slate-300">Predicted Value:</span>
+              <span className="text-xs text-slate-300">Predicted Outcome:</span>
               <div className="text-2xl font-mono font-bold text-white flex items-center gap-2">
                 {isRegression ? (
                   <span className="text-purple-300">
-                    {typeof predictionItem.prediction === 'number'
-                      ? predictionItem.prediction.toFixed(4)
-                      : predictionItem.prediction}
+                    {typeof predictionValue === 'number'
+                      ? predictionValue.toLocaleString(undefined, { maximumFractionDigits: 4 })
+                      : String(predictionValue)}
                   </span>
                 ) : (
-                  <span className="text-emerald-400 px-3 py-0.5 rounded-lg bg-emerald-950/60 border border-emerald-500/40">
-                    {String(predictionItem.prediction)}
+                  <span className="text-emerald-400 px-3 py-1 rounded-lg bg-emerald-950/60 border border-emerald-500/40">
+                    {String(predictionValue)}
                   </span>
                 )}
               </div>
             </div>
 
             {/* Class Probabilities for Classification */}
-            {!isRegression && predictionItem.probabilities && (
+            {!isRegression && probabilities && (
               <div className="pt-2 border-t border-white/[0.08] space-y-2">
                 <span className="text-xs font-semibold text-slate-300 block">
-                  Class Probabilities
+                  Outcome Likelihoods
                 </span>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {Object.entries(predictionItem.probabilities).map(([cls, prob]) => {
+                  {Object.entries(probabilities).map(([cls, prob]) => {
                     const pct = Math.round((prob as number) * 100);
-                    const isWinner = String(cls) === String(predictionItem.prediction);
+                    const isWinner = String(cls) === String(predictionValue);
                     return (
                       <div
                         key={cls}

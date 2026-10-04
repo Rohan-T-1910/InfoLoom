@@ -23,6 +23,7 @@ from app.schemas.eda import (
     FeatureImportanceItem,
     FeatureImportanceResponse,
 )
+from app.services.column_classifier import column_classifier
 from app.services.validation_service import validation_service
 
 
@@ -184,17 +185,21 @@ class EDAService:
 
     def compute_correlation_matrix(self, df: pd.DataFrame) -> dict[str, Any]:
         """
-        Calculates Pearson correlation matrix for numeric columns,
-        highlights high-affinity pairings, and warns against multicollinearity.
+        Calculates Pearson correlation matrix for numeric business measures,
+        highlights meaningful relationships, and warns against redundant information overlap.
+        Excludes technical identifiers and key columns from correlation analysis.
         """
-        numeric_cols = [c for c in df.columns if pd.api.types.is_numeric_dtype(df[c])]
+        numeric_cols = [
+            c for c in df.columns
+            if pd.api.types.is_numeric_dtype(df[c]) and not column_classifier.is_identifier(c, df[c])
+        ]
 
         if len(numeric_cols) < 2:
             return {
                 "columns": numeric_cols,
                 "matrix": {},
                 "strong_correlations": [],
-                "warnings": ["At least two numeric columns are required to construct a correlation matrix."],
+                "warnings": ["At least two numeric business fields are required to analyze relationships between factors."],
             }
 
         corr_df = df[numeric_cols].corr(method="pearson")
@@ -236,8 +241,8 @@ class EDAService:
 
                             if abs_corr >= 0.90:
                                 warnings.append(
-                                    f"Severe collinearity detected between '{c1}' and '{c2}' (r={round(val, 3)}). "
-                                    f"One feature may be redundant in predictive modeling."
+                                    f"High information overlap detected between '{c1}' and '{c2}' (r={round(val, 3)}). "
+                                    f"Both fields track nearly identical patterns; consider using only one to avoid redundant weighting."
                                 )
 
         strong_pairs.sort(key=lambda x: x["abs_correlation"], reverse=True)
@@ -349,24 +354,26 @@ class EDAService:
         return distributions
 
     def detect_candidate_targets(self, df: pd.DataFrame) -> list[str]:
-        """Identifies promising candidate target variables for predictive analysis."""
+        """Identifies promising candidate target variables for predictive analysis, excluding technical identifiers."""
         candidates: list[str] = []
         keywords = ["target", "label", "class", "churn", "survived", "price", "salary", "outcome", "status", "sale", "profit", "score", "rating"]
 
         for col in df.columns:
+            if column_classifier.is_identifier(col, df[col]):
+                continue
             c_lower = str(col).lower()
             if any(k in c_lower for k in keywords):
                 candidates.append(col)
 
-        # Append last column if not already in candidates and not an ID
+        # Append last column if not already in candidates and not an identifier
         if len(df.columns) > 1:
             last_col = df.columns[-1]
-            if last_col not in candidates and not str(last_col).lower().endswith("id"):
+            if last_col not in candidates and not column_classifier.is_identifier(last_col, df[last_col]):
                 candidates.append(last_col)
 
         # Append numeric or classification columns with healthy variation
         for col in df.columns:
-            if col not in candidates:
+            if col not in candidates and not column_classifier.is_identifier(col, df[col]):
                 series = df[col].dropna()
                 if len(series) > 10:
                     nunique = series.nunique()
@@ -386,13 +393,14 @@ class EDAService:
         """
         candidate_targets = self.detect_candidate_targets(df)
 
-        if not target_column:
+        # Ensure target_column is valid and not an identifier
+        if not target_column or column_classifier.is_identifier(target_column, df.get(target_column)):
             if candidate_targets:
                 target_column = candidate_targets[0]
             else:
                 return None
 
-        if target_column not in df.columns:
+        if target_column not in df.columns or column_classifier.is_identifier(target_column, df[target_column]):
             return None
 
         # Prepare dataset: drop missing targets
@@ -423,8 +431,11 @@ class EDAService:
             y = y_raw.astype(float).values
             model = RandomForestRegressor(n_estimators=30, max_depth=6, random_state=42)
 
-        # Feature matrix X
-        feature_cols = [c for c in valid_df.columns if c != target_column]
+        # Feature matrix X: exclude target and any identifier columns
+        feature_cols = [
+            c for c in valid_df.columns
+            if c != target_column and not column_classifier.is_identifier(c, valid_df[c])
+        ]
         if not feature_cols:
             return None
 
@@ -535,19 +546,37 @@ class EDAService:
                 target_column=target_column,
             )
             if cached_report:
-                return EDAResponse(
-                    id=cached_report.id,
-                    dataset_id=cached_report.dataset_id,
-                    is_cleaned=cached_report.is_cleaned,
-                    target_column=cached_report.target_column,
-                    kpis=cached_report.kpis,
-                    summary_statistics=cached_report.summary_statistics,
-                    correlation_matrix=cached_report.correlation_matrix,
-                    distributions=cached_report.distributions,
-                    feature_importance=cached_report.feature_importance,
-                    cached=True,
-                    created_at=cached_report.created_at,
+                # Check if cached report contains identifier columns or stale collinearity jargon
+                cached_corr = cached_report.correlation_matrix or {}
+                cached_cols = cached_corr.get("columns", [])
+                cached_warnings = cached_corr.get("warnings", [])
+                has_stale_identifiers = any(
+                    column_classifier.is_identifier(c) for c in cached_cols
+                ) or any(
+                    "collinearity" in str(w).lower() for w in cached_warnings
                 )
+
+                if not has_stale_identifiers:
+                    return EDAResponse(
+                        id=cached_report.id,
+                        dataset_id=cached_report.dataset_id,
+                        is_cleaned=cached_report.is_cleaned,
+                        target_column=cached_report.target_column,
+                        kpis=cached_report.kpis,
+                        summary_statistics=cached_report.summary_statistics,
+                        correlation_matrix=cached_report.correlation_matrix,
+                        distributions=cached_report.distributions,
+                        feature_importance=cached_report.feature_importance,
+                        cached=True,
+                        created_at=cached_report.created_at,
+                    )
+                else:
+                    # Invalidate stale cached report with technical identifiers/jargon
+                    try:
+                        db.delete(cached_report)
+                        db.commit()
+                    except Exception:
+                        db.rollback()
 
         # 2. Read dataset
         df = validation_service.read_dataset_df(file_path)

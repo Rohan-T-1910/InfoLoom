@@ -340,6 +340,7 @@ export const MLModelsPage: React.FC = () => {
                   models={models}
                   bestModelId={models[0]?.id}
                   selectedModelId={selectedModelId}
+                  datasetId={effectiveId}
                   onSelectModel={(m) => setSelectedModelId(m.id)}
                   onPredictWithModel={handlePredictWithModel}
                 />

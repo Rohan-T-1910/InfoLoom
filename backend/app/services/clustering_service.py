@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 import uuid
 from typing import Any, Optional
 import joblib
@@ -27,6 +28,7 @@ from app.schemas.clustering import (
     ClusterProfile,
     KMeansKMetric,
 )
+from app.services.column_classifier import column_classifier
 from app.services.validation_service import validation_service
 
 
@@ -35,6 +37,24 @@ class ClusteringService:
 
     and multi-tenant segmentation profiling for InfoLoom.
     """
+
+    def _resolve_file_path(self, path: Optional[str]) -> Optional[str]:
+        """Resolves file paths robustly whether executed from repo root or backend dir."""
+        if not path:
+            return None
+        if os.path.isabs(path) and os.path.exists(path):
+            return path
+        if os.path.exists(path):
+            return path
+        # Try relative to backend directory or workspace root
+        base_dir = Path(__file__).resolve().parent.parent.parent
+        candidate = base_dir / path
+        if candidate.exists():
+            return str(candidate)
+        workspace_candidate = base_dir.parent / path
+        if workspace_candidate.exists():
+            return str(workspace_candidate)
+        return path
 
     def get_clustering_features(
         self,
@@ -51,10 +71,13 @@ class ClusteringService:
                 detail="Dataset not found or access denied.",
             )
 
+        resolved_cleaned = self._resolve_file_path(dataset.cleaned_file_path) if dataset.cleaned_file_path else None
+        resolved_raw = self._resolve_file_path(dataset.file_path)
+
         file_path = (
-            dataset.cleaned_file_path
-            if (use_cleaned and dataset.has_cleaned and dataset.cleaned_file_path and os.path.exists(dataset.cleaned_file_path))
-            else dataset.file_path
+            resolved_cleaned
+            if (use_cleaned and dataset.has_cleaned and resolved_cleaned and os.path.exists(resolved_cleaned))
+            else resolved_raw
         )
         if not file_path or not os.path.exists(file_path):
             raise HTTPException(
@@ -89,13 +112,12 @@ class ClusteringService:
                 )
                 numeric_features.append(info)
 
-                # Avoid recommending primary keys or zero-variance columns
-                col_lower = str(col).lower()
-                is_id = col_lower == "id" or col_lower.endswith("_id")
+                # Avoid recommending primary keys, row identifiers, or zero-variance columns
+                is_id = column_classifier.is_identifier(col, series)
                 has_variance = std_val is not None and std_val > 0
                 not_too_sparse = missing_count < (len(df) * 0.5)
 
-                if has_variance and not_too_sparse and not (is_id and series.nunique() == len(series)):
+                if has_variance and not_too_sparse and not is_id:
                     recommended_features.append(str(col))
 
         return ClusteringFeaturesResponse(
@@ -105,6 +127,7 @@ class ClusteringService:
             numeric_features=numeric_features,
             recommended_features=recommended_features,
         )
+
 
     def _prepare_and_validate_features(
         self,
@@ -177,10 +200,13 @@ class ClusteringService:
                 detail="Dataset not found or access denied.",
             )
 
+        resolved_cleaned = self._resolve_file_path(dataset.cleaned_file_path) if dataset.cleaned_file_path else None
+        resolved_raw = self._resolve_file_path(dataset.file_path)
+
         file_path = (
-            dataset.cleaned_file_path
-            if (request.use_cleaned and dataset.has_cleaned and dataset.cleaned_file_path and os.path.exists(dataset.cleaned_file_path))
-            else dataset.file_path
+            resolved_cleaned
+            if (request.use_cleaned and dataset.has_cleaned and resolved_cleaned and os.path.exists(resolved_cleaned))
+            else resolved_raw
         )
         if not file_path or not os.path.exists(file_path):
             raise HTTPException(
@@ -267,16 +293,20 @@ class ClusteringService:
                 detail="Dataset not found or access denied.",
             )
 
+        resolved_cleaned = self._resolve_file_path(dataset.cleaned_file_path) if dataset.cleaned_file_path else None
+        resolved_raw = self._resolve_file_path(dataset.file_path)
+
         file_path = (
-            dataset.cleaned_file_path
-            if (request.use_cleaned and dataset.has_cleaned and dataset.cleaned_file_path and os.path.exists(dataset.cleaned_file_path))
-            else dataset.file_path
+            resolved_cleaned
+            if (request.use_cleaned and dataset.has_cleaned and resolved_cleaned and os.path.exists(resolved_cleaned))
+            else resolved_raw
         )
         if not file_path or not os.path.exists(file_path):
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Dataset file does not exist on storage.",
             )
+
 
         df = validation_service.read_dataset_df(file_path)
         X_imputed, X_scaled, validated_features = self._prepare_and_validate_features(

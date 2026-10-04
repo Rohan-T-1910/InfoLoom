@@ -119,8 +119,52 @@ describe('Customer-Oriented EDA Components', () => {
     expect(screen.getByText('Key Relationships & Patterns')).toBeInTheDocument();
     expect(screen.getByText('High Overlap Detected')).toBeInTheDocument();
     expect(screen.getByText(/show a strong positive relationship/i)).toBeInTheDocument();
+    expect(screen.getByText(/High information overlap between 'age' and 'income'/i)).toBeInTheDocument();
 
-    // Verify technical Pearson matrix terms are omitted
+    // Verify technical terms (collinearity, Pearson Correlation Matrix) are omitted
+    expect(screen.queryByText(/collinearity/i)).not.toBeInTheDocument();
     expect(screen.queryByText('Pearson Correlation Matrix')).not.toBeInTheDocument();
+  });
+
+  it('excludes identifier columns and identifier warnings from relationship display', () => {
+    const corr: CorrelationMatrixResponse = {
+      columns: ['Quantity', 'Price per Unit', 'Total Amount'],
+      matrix: {
+        Quantity: { Quantity: 1.0, 'Price per Unit': 0.02, 'Total Amount': 0.37 },
+        'Price per Unit': { Quantity: 0.02, 'Price per Unit': 1.0, 'Total Amount': 0.85 },
+        'Total Amount': { Quantity: 0.37, 'Price per Unit': 0.85, 'Total Amount': 1.0 },
+      },
+      strong_correlations: [
+        {
+          feature_a: 'Transaction ID',
+          feature_b: 'Customer ID',
+          correlation: 1.0,
+          abs_correlation: 1.0,
+          relationship: 'Strong positive correlation',
+        },
+        {
+          feature_a: 'Price per Unit',
+          feature_b: 'Total Amount',
+          correlation: 0.85,
+          abs_correlation: 0.85,
+          relationship: 'Strong positive correlation',
+        },
+      ],
+      warnings: [
+        "Severe collinearity detected between 'Transaction ID' and 'Customer ID' (r=1.0).",
+      ],
+    };
+
+    render(<EDACorrelationMatrix correlations={corr} />);
+
+    // Legitimate relationship is shown
+    expect(screen.getAllByText('Price per Unit').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Total Amount').length).toBeGreaterThan(0);
+
+    // Identifier relationships and warnings are omitted
+    expect(screen.queryByText('Transaction ID')).not.toBeInTheDocument();
+    expect(screen.queryByText('Customer ID')).not.toBeInTheDocument();
+    expect(screen.queryByText('High Overlap Detected')).not.toBeInTheDocument();
+    expect(screen.queryByText(/collinearity/i)).not.toBeInTheDocument();
   });
 });

@@ -3,6 +3,7 @@ from datetime import datetime
 import logging
 import math
 import os
+import re
 from typing import Any, Dict, List, Optional, Tuple
 import numpy as np
 import pandas as pd
@@ -25,6 +26,7 @@ from app.schemas.insight import (
     InsightSummaryResponse,
     StructuredInsightFact,
 )
+from app.services.column_classifier import column_classifier
 from app.services.llm_polisher import llm_polisher
 
 logger = logging.getLogger(__name__)
@@ -80,6 +82,25 @@ class BusinessInsightsService:
                 db=db, dataset_id=dataset.id, user_id=user_id
             )
             if cached:
+                # Check if cached report contains any identifier columns (e.g. Transaction ID)
+                has_identifier = any(
+                    column_classifier.is_identifier(item.get("feature", ""))
+                    or column_classifier.is_identifier(item.get("secondary_feature", ""))
+                    for item in (cached.insights or [])
+                )
+                if has_identifier:
+                    logger.info(f"Cached report #{cached.id} contains identifier features. Regenerating clean report...")
+                    return self.generate_insights(
+                        db=db,
+                        dataset=dataset,
+                        user_id=user_id,
+                        request=InsightGenerateRequest(
+                            use_cleaned=dataset.has_cleaned,
+                            include_llm=include_llm,
+                        ),
+                        category=category,
+                        min_severity=min_severity,
+                    )
                 return self._filter_report(cached, category=category, min_severity=min_severity)
 
         # Generate fresh deterministic report
@@ -115,8 +136,29 @@ class BusinessInsightsService:
         facts: List[StructuredInsightFact] = []
 
         if df is not None and len(df) >= self.config.min_rows_required:
-            numeric_cols = [c for c in df.select_dtypes(include=[np.number]).columns if df[c].nunique() > 1]
-            categorical_cols = [c for c in df.select_dtypes(include=["object", "category", "string"]).columns if df[c].nunique() > 1]
+            classified = column_classifier.classify_columns(df)
+            # Strictly exclude identifier columns from analytical features
+            numeric_cols = [
+                c for c in classified["numeric_measures"]
+                if not column_classifier.is_identifier(c, df[c])
+            ]
+            categorical_cols = [
+                c for c in classified["categoricals"]
+                if not column_classifier.is_identifier(c, df[c])
+            ]
+
+            # Prioritize core business metrics: Sales, Revenue, Total Amount, Quantity, Price, Profit, Cost
+            def business_priority(col_name: str) -> int:
+                name_lower = col_name.lower()
+                if re.search(r"(sales|revenue|amount|total|profit|margin|income)", name_lower):
+                    return 0
+                if re.search(r"(price|cost|expense|spend|fee)", name_lower):
+                    return 1
+                if re.search(r"(quantity|qty|volume|units|count)", name_lower):
+                    return 2
+                return 3
+
+            numeric_cols.sort(key=business_priority)
 
             # Rule 1: Percentage Changes
             facts.extend(self._extract_percentage_changes(df, numeric_cols, request.pct_change_threshold or self.config.pct_change_threshold))
@@ -199,13 +241,18 @@ class BusinessInsightsService:
                 created_at=None,
             )
 
-        parsed_insights = [StructuredInsightFact(**item) for item in report.insights[:5]]
+        valid_items = [
+            item for item in (report.insights or [])
+            if not column_classifier.is_identifier(item.get("feature", ""))
+            and not column_classifier.is_identifier(item.get("secondary_feature", ""))
+        ]
+        parsed_insights = [StructuredInsightFact(**item) for item in valid_items[:5]]
         kpi = InsightKPISummary(**report.kpi_summary)
 
         return InsightSummaryResponse(
             dataset_id=dataset_id,
             has_report=True,
-            total_insights=report.total_insights,
+            total_insights=len(valid_items),
             kpi_summary=kpi,
             top_insights=parsed_insights,
             created_at=report.created_at,
@@ -235,6 +282,8 @@ class BusinessInsightsService:
         second_half = df.iloc[mid:]
 
         for col in numeric_cols[:10]:  # Evaluate top 10 numeric features
+            if column_classifier.is_identifier(col, df[col]):
+                continue
             m1 = float(first_half[col].dropna().mean()) if len(first_half[col].dropna()) > 0 else 0.0
             m2 = float(second_half[col].dropna().mean()) if len(second_half[col].dropna()) > 0 else 0.0
 
@@ -257,7 +306,9 @@ class BusinessInsightsService:
                             confidence=0.85,
                             explanation=(
                                 f"Average '{col}' shifted from a zero baseline (0.00) to {m2:.2f} "
-                                f"in the latter half of the dataset (absolute change of +{diff:.2f})."
+                                f"in the latter half of the dataset (absolute change of +{diff:.2f}). "
+                                f"Why it matters: Indicates a newly active operational metric that was previously dormant. "
+                                f"Recommended Next Step: Confirm operational events or product launches that triggered this activation."
                             ),
                             supporting_evidence={
                                 "baseline_mean": 0.0,
@@ -288,6 +339,13 @@ class BusinessInsightsService:
                 verb = "increased" if pct_change > 0 else "decreased"
                 sign = "+" if pct_change > 0 else ""
 
+                impact_desc = "strong performance expansion" if pct_change > 0 else "performance contraction requiring attention"
+                next_step_desc = (
+                    f"Investigate high-performing segments to sustain positive momentum in '{col}'."
+                    if pct_change > 0
+                    else f"Examine root causes and underlying segments driving the decline in '{col}'."
+                )
+
                 facts.append(
                     StructuredInsightFact(
                         id=f"pct_change_{col}_{direction}",
@@ -304,7 +362,9 @@ class BusinessInsightsService:
                         explanation=(
                             f"Average '{col}' {verb} by {abs(pct_change):.1f}% "
                             f"(from {m1:.2f} to {m2:.2f}, net change of {sign}{m2 - m1:.2f}) "
-                            f"comparing the first {mid} observations to the subsequent {n - mid} periods."
+                            f"comparing the first {mid} observations to the subsequent {n - mid} periods. "
+                            f"Why it matters: Represents a notable {impact_desc} over time. "
+                            f"Recommended Next Step: {next_step_desc}"
                         ),
                         supporting_evidence={
                             "baseline_period_mean": round(m1, 4),
@@ -354,9 +414,11 @@ class BusinessInsightsService:
                             change_abs=None,
                             confidence=round(min(0.99, share / 100.0 + 0.1), 2),
                             explanation=(
-                                f"Category '{top_cat}' is the dominant contributor in '{col}', "
+                                f"What happened: Category '{top_cat}' is the dominant contributor in '{col}', "
                                 f"accounting for {share:.1f}% of all records ({top_count:,} of {n:,} rows), "
-                                f"surpassing the uniform expectation of {100.0 / len(counts):.1f}%."
+                                f"surpassing the uniform expectation of {100.0 / len(counts):.1f}%. "
+                                f"Why it matters: High categorical concentration creates commercial reliance on a single segment. "
+                                f"Recommended Next Step: Evaluate whether to reinforce dominance in '{top_cat}' or diversify outreach across secondary categories."
                             ),
                             supporting_evidence={
                                 "dominant_category": top_cat,
@@ -393,9 +455,10 @@ class BusinessInsightsService:
                             change_abs=None,
                             confidence=0.92,
                             explanation=(
-                                f"The top 20% of observations in '{col}' account for {concentration_share:.1f}% "
-                                f"of the total cumulative volume ({top_20_sum:,.2f} of {total_sum:,.2f}), "
-                                f"indicating significant distributional skew toward high-value records."
+                                f"What happened: The top 20% of observations in '{col}' account for {concentration_share:.1f}% "
+                                f"of the total cumulative volume ({top_20_sum:,.2f} of {total_sum:,.2f}). "
+                                f"Why it matters: A disproportionate volume of value is generated by a minority of records, characteristic of high Pareto concentration. "
+                                f"Recommended Next Step: Focus dedicated account management and service tiering on this top-performing 20% tier."
                             ),
                             supporting_evidence={
                                 "top_20_percent_count": top_20_count,
@@ -451,6 +514,17 @@ class BusinessInsightsService:
 
                 total_expected_delta = slope * (n - 1)
 
+                impact_meaning = (
+                    f"Why it matters: Sustained expansion in '{col}' indicates positive momentum across operational periods."
+                    if slope > 0
+                    else f"Why it matters: Persistent decline in '{col}' suggests systematic downward pressure that may affect overall outcomes."
+                )
+                action_next = (
+                    f"Recommended Next Step: Capitalize on positive growth factors and verify capacity to support continuation."
+                    if slope > 0
+                    else f"Recommended Next Step: Investigate contributing factors or underperforming sub-segments causing this downward trajectory."
+                )
+
                 facts.append(
                     StructuredInsightFact(
                         id=f"trend_{col}_{direction}",
@@ -465,9 +539,9 @@ class BusinessInsightsService:
                         change_abs=round(total_expected_delta, 2),
                         confidence=round(min(0.98, max(0.60, r2)), 2),
                         explanation=(
-                            f"'{col}' shows a statistically clear {trend_word} trajectory over the analyzed sequence "
-                            f"(R² = {r2:.2f}, average change of {'+' if slope > 0 else ''}{slope:.3f} per observation), "
-                            f"resulting in a projected progression of {total_expected_delta:+.2f} across the sequence."
+                            f"What happened: '{col}' shows a statistically clear {trend_word} trajectory over the analyzed sequence "
+                            f"(average change of {'+' if slope > 0 else ''}{slope:.3f} per observation, net delta of {total_expected_delta:+.2f}). "
+                            f"{impact_meaning} {action_next}"
                         ),
                         supporting_evidence={
                             "r_squared": round(r2, 4),
@@ -904,9 +978,16 @@ class BusinessInsightsService:
             InsightSeverity.INFO.value: 30,
         }
 
+        # Strict exclusion: purge any fact referencing an identifier column
+        valid_facts = [
+            f for f in facts
+            if not (f.feature and column_classifier.is_identifier(f.feature))
+            and not (f.secondary_feature and column_classifier.is_identifier(f.secondary_feature))
+        ]
+
         # Deduplicate
         unique_map: Dict[Tuple[str, str, Optional[str], str], StructuredInsightFact] = {}
-        for f in facts:
+        for f in valid_facts:
             key = (f.category, f.feature, f.secondary_feature, f.direction)
             if key not in unique_map:
                 unique_map[key] = f
@@ -960,7 +1041,12 @@ class BusinessInsightsService:
         category: Optional[str] = None,
         min_severity: Optional[str] = None,
     ) -> InsightReportResponse:
-        parsed_insights = [StructuredInsightFact(**item) for item in report.insights]
+        parsed_insights = [
+            StructuredInsightFact(**item)
+            for item in (report.insights or [])
+            if not column_classifier.is_identifier(item.get("feature", ""))
+            and not column_classifier.is_identifier(item.get("secondary_feature", ""))
+        ]
 
         if category:
             parsed_insights = [f for f in parsed_insights if f.category.lower() == category.lower()]

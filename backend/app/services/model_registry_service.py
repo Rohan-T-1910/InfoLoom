@@ -194,6 +194,57 @@ class ModelRegistryService:
             task_type=task_type,
             is_active=is_active,
         )
+
+        # If no models are registered yet, auto-register available trained ML models for this user
+        if total == 0:
+            from sqlalchemy import select, desc
+            from app.models.ml import MLModel
+            stmt = (
+                select(MLModel)
+                .where(MLModel.user_id == user_id)
+                .order_by(desc(MLModel.is_best), desc(MLModel.created_at))
+            )
+            if dataset_id:
+                stmt = stmt.where(MLModel.dataset_id == dataset_id)
+            trained_candidates = db.execute(stmt).scalars().all()
+            for cand in trained_candidates:
+                if cand.artifact_path and os.path.exists(cand.artifact_path):
+                    try:
+                        cand_dataset = cand.dataset
+                        ds_name = cand_dataset.original_filename if cand_dataset else "Dataset"
+                        self.register_model(
+                            db=db,
+                            user_id=user_id,
+                            request=RegisterModelRequest(
+                                name=f"{ds_name} - {cand.target_column} Predictor",
+                                dataset_id=cand.dataset_id,
+                                source_model_id=cand.id,
+                                description=f"Saved model ({cand.algorithm}) predicting {cand.target_column}",
+                                set_active=True,
+                            ),
+                        )
+                    except Exception:
+                        pass
+
+            models = model_registry_repository.list_models(
+                db=db,
+                user_id=user_id,
+                dataset_id=dataset_id,
+                name=name,
+                task_type=task_type,
+                is_active=is_active,
+                limit=limit,
+                offset=offset,
+            )
+            total = model_registry_repository.count_models(
+                db=db,
+                user_id=user_id,
+                dataset_id=dataset_id,
+                name=name,
+                task_type=task_type,
+                is_active=is_active,
+            )
+
         return RegisteredModelListResponse(
             items=[self._to_response(m) for m in models],
             total=total,

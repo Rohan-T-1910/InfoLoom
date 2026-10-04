@@ -11,10 +11,13 @@ class DatasetResponse(BaseModel):
     row_count: Optional[int] = None
     column_count: Optional[int] = None
     status: str
+    has_cleaned: bool = False
+    cleaned_file_path: Optional[str] = None
     created_at: datetime
     updated_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
 
 class DatasetDetailResponse(DatasetResponse):
     columns_metadata: Optional[dict[str, Any]] = None

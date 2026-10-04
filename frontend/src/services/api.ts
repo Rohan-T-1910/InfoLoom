@@ -90,6 +90,12 @@ class ApiClient {
     }
 
     if (!response.ok) {
+      if (response.status === 401) {
+        this.setToken(null);
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('infoloom:unauthorized'));
+        }
+      }
       let rawError: any = null;
       try {
         rawError = await response.json();
@@ -138,6 +144,12 @@ class ApiClient {
     }
 
     if (!response.ok) {
+      if (response.status === 401) {
+        this.setToken(null);
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('infoloom:unauthorized'));
+        }
+      }
       let rawError: any = null;
       try {
         rawError = await response.json();
@@ -206,6 +218,17 @@ class ApiClient {
 
   async getCurrentUser(): Promise<User> {
     return this.request<User>('/auth/me');
+  }
+
+  async demoLogin(): Promise<{ access_token: string; token_type: string }> {
+    const data = await this.request<{ access_token: string; token_type: string }>('/auth/demo', {
+      method: 'POST',
+      body: JSON.stringify({}),
+    });
+    if (data.access_token) {
+      this.setToken(data.access_token);
+    }
+    return data;
   }
 
   logout(): void {
@@ -389,47 +412,221 @@ class ApiClient {
     datasetId: number,
     useCleaned = true
   ): Promise<ForecastingColumnsResponse> {
-    return this.request<ForecastingColumnsResponse>(
+    const raw = await this.request<any>(
       `/datasets/${datasetId}/forecasting/columns?use_cleaned=${useCleaned}`
     );
+    const dateCols = raw?.datetime_columns ?? raw?.date_columns ?? [];
+    return {
+      ...raw,
+      datetime_columns: dateCols,
+      date_columns: dateCols,
+      numeric_columns: raw?.numeric_columns || [],
+    };
   }
 
   async evaluateForecasting(
     datasetId: number,
     payload: ForecastEvaluationRequest
   ): Promise<ForecastEvaluationResponse> {
-    return this.request<ForecastEvaluationResponse>(
+    const horizon = payload.horizon ?? payload.forecast_horizon ?? 14;
+    const raw = await this.request<any>(
       `/datasets/${datasetId}/forecasting/evaluate`,
       {
         method: 'POST',
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          ...payload,
+          forecast_horizon: horizon,
+        }),
       }
     );
+    const rawMetrics = raw?.metrics || {};
+    const validationPointsRaw = raw?.validation_points ?? raw?.backtest_points ?? [];
+    const backtest_points = validationPointsRaw.map((p: any) => ({
+      ...p,
+      date: p.date ?? p.timestamp ?? '',
+      timestamp: p.timestamp ?? p.date ?? '',
+      actual: Number(p.actual ?? 0),
+      predicted: Number(p.predicted ?? 0),
+      error: Number(p.error ?? (p.actual - p.predicted)),
+      lower_ci: p.lower_ci != null ? Number(p.lower_ci) : null,
+      upper_ci: p.upper_ci != null ? Number(p.upper_ci) : null,
+    }));
+
+    return {
+      ...raw,
+      horizon: raw?.horizon ?? raw?.validation_horizon ?? horizon,
+      validation_horizon: raw?.validation_horizon ?? horizon,
+      frequency: raw?.frequency ?? payload.frequency ?? 'auto',
+      model_name: raw?.model_name ?? 'Auto-ARIMA',
+      model_order: raw?.model_order ?? [1, 1, 0],
+      total_observations: raw?.total_observations ?? raw?.n_historical_points ?? 0,
+      date_min: raw?.date_min ?? (backtest_points[0]?.date || ''),
+      date_max: raw?.date_max ?? (backtest_points[backtest_points.length - 1]?.date || ''),
+      metrics: {
+        mape: typeof rawMetrics.mape === 'number' ? rawMetrics.mape : 0,
+        rmse: typeof rawMetrics.rmse === 'number' ? rawMetrics.rmse : 0,
+        mae: typeof rawMetrics.mae === 'number' ? rawMetrics.mae : 0,
+        r2: typeof rawMetrics.r2 === 'number' ? rawMetrics.r2 : null,
+        directional_accuracy:
+          typeof rawMetrics.directional_accuracy === 'number'
+            ? rawMetrics.directional_accuracy
+            : typeof rawMetrics.direction_accuracy === 'number'
+            ? rawMetrics.direction_accuracy
+            : null,
+        direction_accuracy:
+          typeof rawMetrics.direction_accuracy === 'number'
+            ? rawMetrics.direction_accuracy
+            : typeof rawMetrics.directional_accuracy === 'number'
+            ? rawMetrics.directional_accuracy
+            : null,
+        validation_horizon: rawMetrics.validation_horizon ?? horizon,
+        test_samples: rawMetrics.test_samples ?? rawMetrics.validation_horizon ?? horizon,
+        train_samples: rawMetrics.train_samples ?? (raw?.n_historical_points || 0),
+      },
+      backtest_points,
+      validation_points: backtest_points,
+    };
   }
 
   async runForecasting(
     datasetId: number,
     payload: ForecastRunRequest
   ): Promise<ForecastModelResponse> {
-    return this.request<ForecastModelResponse>(
+    const horizon = payload.horizon ?? payload.forecast_horizon ?? 14;
+    const raw = await this.request<any>(
       `/datasets/${datasetId}/forecasting/run`,
       {
         method: 'POST',
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          ...payload,
+          forecast_horizon: horizon,
+        }),
       }
     );
+    return this.normalizeForecastModel(raw, horizon);
   }
 
   async listDatasetForecastModels(
     datasetId: number
   ): Promise<ForecastModelSummary[]> {
-    return this.request<ForecastModelSummary[]>(
+    const raw = await this.request<any[]>(
       `/datasets/${datasetId}/forecasting/results`
     );
+    return (raw || []).map((m) => {
+      const metrics = m.metrics || {};
+      const params = m.model_parameters || {};
+      const mape =
+        typeof m.mape === 'number'
+          ? m.mape
+          : typeof metrics.mape === 'number'
+          ? metrics.mape
+          : 0;
+      const rmse =
+        typeof m.rmse === 'number'
+          ? m.rmse
+          : typeof metrics.rmse === 'number'
+          ? metrics.rmse
+          : 0;
+      const modelType = m.model_type || params.model_type || 'ARIMA';
+      const horizon = m.horizon ?? m.forecast_horizon ?? 14;
+      return {
+        ...m,
+        metrics,
+        horizon,
+        forecast_horizon: horizon,
+        model_type: modelType,
+        mape,
+        rmse,
+      };
+    });
   }
 
   async getForecastModel(modelId: number): Promise<ForecastModelResponse> {
-    return this.request<ForecastModelResponse>(`/forecasting/models/${modelId}`);
+    const raw = await this.request<any>(`/forecasting/models/${modelId}`);
+    return this.normalizeForecastModel(raw);
+  }
+
+  private normalizeForecastModel(model: any, defaultHorizon = 14): ForecastModelResponse {
+    if (!model) return model;
+    const horizon = model.horizon ?? model.forecast_horizon ?? defaultHorizon;
+    const modelParams = model.model_parameters || {};
+    const modelType = model.model_type ?? modelParams.model_type ?? 'ARIMA';
+    const modelOrder = Array.isArray(model.model_order)
+      ? model.model_order
+      : Array.isArray(modelParams.order)
+      ? modelParams.order
+      : [];
+    const aic = model.aic ?? modelParams.aic ?? null;
+    const bic = model.bic ?? modelParams.bic ?? null;
+
+    const rawMetrics = model.metrics || {};
+    const historical_points = (model.historical_points || []).map((p: any) => ({
+      ...p,
+      date: p.date ?? p.timestamp ?? '',
+      timestamp: p.timestamp ?? p.date ?? '',
+      value: Number(p.value ?? 0),
+    }));
+
+    const validationPointsRaw = model.validation_points ?? model.backtest_points ?? [];
+    const backtest_points = validationPointsRaw.map((p: any) => ({
+      ...p,
+      date: p.date ?? p.timestamp ?? '',
+      timestamp: p.timestamp ?? p.date ?? '',
+      actual: Number(p.actual ?? 0),
+      predicted: Number(p.predicted ?? 0),
+      error: Number(p.error ?? (p.actual - p.predicted)),
+      lower_ci: p.lower_ci != null ? Number(p.lower_ci) : null,
+      upper_ci: p.upper_ci != null ? Number(p.upper_ci) : null,
+    }));
+
+    const forecast_points = (model.forecast_points || []).map((p: any) => ({
+      ...p,
+      date: p.date ?? p.timestamp ?? '',
+      timestamp: p.timestamp ?? p.date ?? '',
+      forecast: Number(p.forecast ?? 0),
+      lower_ci: Number(p.lower_ci ?? 0),
+      upper_ci: Number(p.upper_ci ?? 0),
+    }));
+
+    return {
+      ...model,
+      horizon,
+      forecast_horizon: horizon,
+      model_type: modelType,
+      model_order: modelOrder,
+      model_parameters: modelParams,
+      aic,
+      bic,
+      metrics: {
+        mape: typeof rawMetrics.mape === 'number' ? rawMetrics.mape : 0,
+        rmse: typeof rawMetrics.rmse === 'number' ? rawMetrics.rmse : 0,
+        mae: typeof rawMetrics.mae === 'number' ? rawMetrics.mae : 0,
+        r2: typeof rawMetrics.r2 === 'number' ? rawMetrics.r2 : null,
+        directional_accuracy:
+          typeof rawMetrics.directional_accuracy === 'number'
+            ? rawMetrics.directional_accuracy
+            : typeof rawMetrics.direction_accuracy === 'number'
+            ? rawMetrics.direction_accuracy
+            : null,
+        direction_accuracy:
+          typeof rawMetrics.direction_accuracy === 'number'
+            ? rawMetrics.direction_accuracy
+            : typeof rawMetrics.directional_accuracy === 'number'
+            ? rawMetrics.directional_accuracy
+            : null,
+        validation_horizon: rawMetrics.validation_horizon ?? horizon,
+        test_samples: rawMetrics.test_samples ?? rawMetrics.validation_horizon ?? horizon,
+        train_samples: rawMetrics.train_samples ?? (model.n_historical_points || historical_points.length),
+      },
+      historical_points,
+      validation_points: backtest_points,
+      backtest_points,
+      forecast_points,
+      total_observations:
+        model.total_observations ?? model.n_historical_points ?? historical_points.length,
+      date_min: model.date_min ?? (historical_points[0]?.date || ''),
+      date_max: model.date_max ?? (historical_points[historical_points.length - 1]?.date || ''),
+    };
   }
 
   async deleteForecastModel(modelId: number): Promise<void> {

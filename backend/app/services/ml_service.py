@@ -22,6 +22,7 @@ from app.schemas.ml import (
     MLTargetInspectionResponse,
     MLTrainRequest,
 )
+from app.services.column_classifier import column_classifier
 from app.services.ml_pipeline import MLPipelineBuilder
 from app.services.validation_service import validation_service
 
@@ -70,7 +71,8 @@ class MLService:
         sample_vals = [int(v) if isinstance(v, (np.integer, int)) else float(v) if isinstance(v, (np.floating, float)) else str(v) for v in sample_vals]
 
         candidate_features = [
-            c for c in df.columns if c != target_column and not str(c).lower().endswith("id")
+            c for c in df.columns
+            if c != target_column and not column_classifier.is_identifier(c, df[c])
         ]
 
         warning = None
@@ -333,6 +335,25 @@ class MLService:
             best_model = trained_models[0]
             best_model.is_best = True
             db.commit()
+
+            # Auto-register top model into Saved Models
+            try:
+                from app.schemas.model_registry import RegisterModelRequest
+                from app.services.model_registry_service import model_registry_service
+                clean_name = f"{dataset.original_filename or 'Dataset'} - {best_model.target_column} Predictor"
+                model_registry_service.register_model(
+                    db=db,
+                    user_id=job.user_id,
+                    request=RegisterModelRequest(
+                        name=clean_name,
+                        dataset_id=job.dataset_id,
+                        source_model_id=best_model.id,
+                        description=f"Auto-saved best model ({best_model.algorithm}) predicting {best_model.target_column}",
+                        set_active=True,
+                    ),
+                )
+            except Exception as reg_err:
+                pass
 
             leaderboard = [
                 {

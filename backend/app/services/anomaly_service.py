@@ -26,6 +26,7 @@ from app.schemas.anomaly import (
     AnomalousRowDetail,
     FeatureDeviation,
 )
+from app.services.column_classifier import column_classifier
 from app.services.validation_service import validation_service
 
 
@@ -75,6 +76,8 @@ class AnomalyDetectionService:
                 min_val = float(series.min()) if non_null_count > 0 else None
                 max_val = float(series.max()) if non_null_count > 0 else None
 
+                is_id = column_classifier.is_identifier(col, series)
+
                 info = AnomalyFeatureInfo(
                     name=str(col),
                     data_type=str(df[col].dtype),
@@ -84,11 +87,12 @@ class AnomalyDetectionService:
                     max=round(max_val, 4) if max_val is not None else None,
                     mean=round(mean_val, 4) if mean_val is not None else None,
                     std=round(std_val, 4) if std_val is not None else None,
+                    is_identifier=is_id,
                 )
                 numeric_features.append(info)
 
-                # Recommend numeric features with variance (>1 unique value, std > 0)
-                if non_null_count >= 10 and series.nunique() > 1 and (std_val is not None and std_val > 1e-6):
+                # Recommend numeric business measures only (never identifiers)
+                if not is_id and non_null_count >= 10 and series.nunique() > 1 and (std_val is not None and std_val > 1e-6):
                     recommended_features.append(str(col))
 
         return AnomalyFeaturesResponse(
@@ -155,6 +159,11 @@ class AnomalyDetectionService:
                 raise HTTPException(
                     status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                     detail=f"Feature '{feat}' is not numeric. Anomaly detection requires numeric columns.",
+                )
+            if column_classifier.is_identifier(feat, df[feat]):
+                raise HTTPException(
+                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    detail=f"Feature '{feat}' is an identifier/ID column and cannot be used for anomaly detection.",
                 )
             validated_features.append(feat)
 

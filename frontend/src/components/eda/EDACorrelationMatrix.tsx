@@ -9,14 +9,36 @@ interface EDACorrelationMatrixProps {
 }
 
 const isIdentifierColumn = (name: string): boolean => {
+  if (!name) return false;
   const clean = name.toLowerCase().replace(/[\s_-]+/g, '');
   return (
     clean === 'id' ||
+    clean === 'idx' ||
+    clean === 'index' ||
+    clean === 'uuid' ||
+    clean === 'guid' ||
+    clean === 'pk' ||
+    clean === 'key' ||
+    clean === 'token' ||
+    clean === 'hash' ||
+    clean === 'ssn' ||
     clean.endsWith('id') ||
     clean.startsWith('id') ||
     clean.includes('identifier') ||
     clean.includes('transactionid') ||
-    clean.includes('customerid')
+    clean.includes('customerid') ||
+    clean.includes('orderid') ||
+    clean.includes('productid') ||
+    clean.includes('accountid') ||
+    clean.includes('sessionid') ||
+    clean.includes('clientid') ||
+    clean.includes('invoiceid') ||
+    clean.includes('itemid') ||
+    clean.includes('memberid') ||
+    clean.includes('employeeid') ||
+    clean.includes('ordernumber') ||
+    clean.includes('customernumber') ||
+    clean.includes('transactionnumber')
   );
 };
 
@@ -27,6 +49,32 @@ export const EDACorrelationMatrix: React.FC<EDACorrelationMatrixProps> = ({ corr
   const meaningfulPairs = (strong_correlations || []).filter(
     (pair) => !isIdentifierColumn(pair.feature_a) && !isIdentifierColumn(pair.feature_b)
   );
+
+  // Filter warnings to exclude identifier fields and translate technical jargon to plain business terms
+  const sanitizedWarnings = (warnings || [])
+    .filter((w) => {
+      // Exclude warnings that reference identifier fields
+      const matches = w.match(/'([^']+)'/g);
+      if (matches && matches.length > 0) {
+        const fields = matches.map((m) => m.replace(/'/g, ''));
+        if (fields.some((f) => isIdentifierColumn(f))) {
+          return false;
+        }
+      }
+      return true;
+    })
+    .map((w) => {
+      // Remove raw technical correlation notation like (r=0.92)
+      let cleaned = w.replace(/\(r=[0-9.]+\)/gi, '').replace(/\s+/g, ' ').trim();
+      // Replace technical terms like collinearity / multicollinearity with business language
+      cleaned = cleaned.replace(/severe collinearity detected between/gi, 'High information overlap between');
+      cleaned = cleaned.replace(/multicollinearity detected between/gi, 'High information overlap between');
+      cleaned = cleaned.replace(/collinearity detected between/gi, 'High information overlap between');
+      cleaned = cleaned.replace(/severe collinearity/gi, 'high overlap');
+      cleaned = cleaned.replace(/multicollinearity/gi, 'information overlap');
+      cleaned = cleaned.replace(/collinearity/gi, 'information overlap');
+      return cleaned;
+    });
 
   return (
     <Card className="border border-white/[0.08] bg-[#0c0818]/90">
@@ -50,8 +98,8 @@ export const EDACorrelationMatrix: React.FC<EDACorrelationMatrixProps> = ({ corr
       </CardHeader>
 
       <CardContent className="p-6 space-y-4">
-        {/* Multicollinearity or Redundancy Warning */}
-        {warnings && warnings.length > 0 && (
+        {/* High Information Overlap Warning */}
+        {sanitizedWarnings && sanitizedWarnings.length > 0 && (
           <div className="rounded-xl border border-amber-500/30 bg-amber-950/20 p-4">
             <div className="flex items-start gap-3">
               <AlertTriangle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
@@ -61,12 +109,12 @@ export const EDACorrelationMatrix: React.FC<EDACorrelationMatrixProps> = ({ corr
                   Certain fields share nearly identical information. When training predictive models, consider using only one of each pair to prevent redundant weighting.
                 </p>
                 <div className="mt-2.5 flex flex-wrap gap-2">
-                  {warnings.map((w, idx) => (
+                  {sanitizedWarnings.map((w, idx) => (
                     <span
                       key={idx}
                       className="px-2.5 py-1 rounded-md bg-amber-900/30 border border-amber-500/20 text-xs text-amber-200"
                     >
-                      {w.replace(/\(r=[0-9.]+\)/gi, '').replace(/\s+/g, ' ').trim()}
+                      {w}
                     </span>
                   ))}
                 </div>

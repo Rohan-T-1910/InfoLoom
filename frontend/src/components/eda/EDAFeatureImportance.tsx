@@ -13,14 +13,36 @@ interface EDAFeatureImportanceProps {
 }
 
 const isIdentifierColumn = (name: string): boolean => {
+  if (!name) return false;
   const clean = name.toLowerCase().replace(/[\s_-]+/g, '');
   return (
     clean === 'id' ||
+    clean === 'idx' ||
+    clean === 'index' ||
+    clean === 'uuid' ||
+    clean === 'guid' ||
+    clean === 'pk' ||
+    clean === 'key' ||
+    clean === 'token' ||
+    clean === 'hash' ||
+    clean === 'ssn' ||
     clean.endsWith('id') ||
     clean.startsWith('id') ||
     clean.includes('identifier') ||
     clean.includes('transactionid') ||
-    clean.includes('customerid')
+    clean.includes('customerid') ||
+    clean.includes('orderid') ||
+    clean.includes('productid') ||
+    clean.includes('accountid') ||
+    clean.includes('sessionid') ||
+    clean.includes('clientid') ||
+    clean.includes('invoiceid') ||
+    clean.includes('itemid') ||
+    clean.includes('memberid') ||
+    clean.includes('employeeid') ||
+    clean.includes('ordernumber') ||
+    clean.includes('customernumber') ||
+    clean.includes('transactionnumber')
   );
 };
 
@@ -43,7 +65,8 @@ export const EDAFeatureImportance: React.FC<EDAFeatureImportanceProps> = ({
 
   const { target_column, features, candidate_targets } = featureImportance;
 
-  // Filter out identifier columns (e.g. Transaction ID, Customer ID) so they are not presented as business drivers
+  // Filter out identifier columns (e.g. Transaction ID, Customer ID) from candidate targets and features
+  const businessCandidateTargets = (candidate_targets || []).filter((tgt) => !isIdentifierColumn(tgt));
   const businessFeatures = features.filter((f) => !isIdentifierColumn(f.feature));
 
   // Re-normalize percentages so remaining analytical drivers represent 100% of analyzed weight
@@ -141,11 +164,11 @@ export const EDAFeatureImportance: React.FC<EDAFeatureImportanceProps> = ({
           </div>
 
           {/* Outcome Switcher */}
-          {candidate_targets.length > 1 && (
+          {businessCandidateTargets.length > 1 && (
             <div className="flex items-center gap-2">
               <span className="text-xs text-slate-400">Analyse Outcome:</span>
               <div className="flex flex-wrap gap-1.5">
-                {candidate_targets.map((tgt) => (
+                {businessCandidateTargets.map((tgt) => (
                   <button
                     key={tgt}
                     onClick={() => onTargetChange && onTargetChange(tgt)}

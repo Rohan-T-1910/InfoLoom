@@ -398,6 +398,7 @@ export interface ForecastingColumnsResponse {
   is_cleaned: boolean;
   total_rows: number;
   datetime_columns: ForecastingColumnInfo[];
+  date_columns?: ForecastingColumnInfo[];
   numeric_columns: ForecastingColumnInfo[];
   recommended_date_column?: string | null;
   recommended_target_column?: string | null;
@@ -407,17 +408,20 @@ export interface ForecastEvaluationRequest {
   date_column: string;
   target_column: string;
   horizon?: number;
+  forecast_horizon?: number;
   frequency?: string | null;
   use_cleaned?: boolean;
 }
 
 export interface TimeSeriesPoint {
   timestamp: string;
+  date?: string;
   value: number;
 }
 
 export interface ForecastBacktestPoint {
   timestamp: string;
+  date?: string;
   actual: number;
   predicted: number;
   error: number;
@@ -431,28 +435,35 @@ export interface ForecastEvaluationMetrics {
   mae: number;
   r2?: number | null;
   directional_accuracy?: number | null;
-  test_samples: number;
-  train_samples: number;
+  direction_accuracy?: number | null;
+  validation_horizon?: number;
+  test_samples?: number;
+  train_samples?: number;
 }
 
 export interface ForecastEvaluationResponse {
   date_column: string;
   target_column: string;
   horizon: number;
+  validation_horizon?: number;
   frequency: string;
   total_observations: number;
+  n_historical_points?: number;
   date_min: string;
   date_max: string;
   model_name: string;
   model_order: number[];
   metrics: ForecastEvaluationMetrics;
   backtest_points: ForecastBacktestPoint[];
+  validation_points?: ForecastBacktestPoint[];
+  summary_notes?: string;
 }
 
 export interface ForecastRunRequest {
   date_column: string;
   target_column: string;
   horizon?: number;
+  forecast_horizon?: number;
   frequency?: string | null;
   name?: string | null;
   use_cleaned?: boolean;
@@ -460,6 +471,7 @@ export interface ForecastRunRequest {
 
 export interface FutureForecastPoint {
   timestamp: string;
+  date?: string;
   forecast: number;
   lower_ci: number;
   upper_ci: number;
@@ -474,17 +486,21 @@ export interface ForecastModelResponse {
   target_column: string;
   frequency: string;
   horizon: number;
+  forecast_horizon?: number;
   model_type: string;
   model_order: number[];
+  model_parameters?: Record<string, any>;
   aic?: number | null;
   bic?: number | null;
   metrics: ForecastEvaluationMetrics;
   historical_points: TimeSeriesPoint[];
   backtest_points?: ForecastBacktestPoint[] | null;
+  validation_points?: ForecastBacktestPoint[] | null;
   forecast_points: FutureForecastPoint[];
   date_min: string;
   date_max: string;
   total_observations: number;
+  n_historical_points?: number;
   use_cleaned: boolean;
   status: string;
   error_message?: string | null;
@@ -498,6 +514,7 @@ export interface ForecastModelSummary {
   target_column: string;
   frequency: string;
   horizon: number;
+  forecast_horizon?: number;
   model_type: string;
   mape: number;
   rmse: number;
@@ -518,6 +535,7 @@ export interface AnomalyFeatureInfo {
   max?: number | null;
   mean?: number | null;
   std?: number | null;
+  is_identifier?: boolean;
 }
 
 export interface AnomalyFeaturesResponse {

@@ -88,7 +88,7 @@ describe('Phase 5 Clustering Frontend Components', () => {
     created_at: new Date().toISOString(),
   };
 
-  it('renders K selection diagnostics with elbow and silhouette scores', () => {
+  it('renders K selection diagnostics with natural-language recommendations', () => {
     const onApply = vi.fn();
     render(
       <ClusteringEvaluationCard
@@ -98,11 +98,11 @@ describe('Phase 5 Clustering Frontend Components', () => {
       />
     );
 
-    expect(screen.getByText('K Selection Diagnostic (Elbow & Silhouette)')).toBeInTheDocument();
-    expect(screen.getByText(/Suggested: K = 3/i)).toBeInTheDocument();
-    expect(screen.getByText(/K=3 achieves the highest silhouette score/i)).toBeInTheDocument();
+    expect(screen.getByText('Group Count Recommendation')).toBeInTheDocument();
+    expect(screen.getByText(/Recommended: 3 Groups/i)).toBeInTheDocument();
+    expect(screen.getByText(/clearest contrast between segments/i)).toBeInTheDocument();
 
-    const applyButton = screen.getByRole('button', { name: /Apply K=3/i });
+    const applyButton = screen.getByRole('button', { name: /Use 3 Groups/i });
     expect(applyButton).toBeInTheDocument();
     fireEvent.click(applyButton);
     expect(onApply).toHaveBeenCalledWith(3);
@@ -111,21 +111,19 @@ describe('Phase 5 Clustering Frontend Components', () => {
   it('renders cluster distribution card with proportional segment metrics', () => {
     render(<ClusterDistributionCard model={sampleModel} />);
 
-    expect(screen.getByText('Segment Distribution & Balance')).toBeInTheDocument();
-    expect(screen.getByText('K = 3 Segments')).toBeInTheDocument();
+    expect(screen.getByText('Group Overview & Balance')).toBeInTheDocument();
+    expect(screen.getByText('3 Groups')).toBeInTheDocument();
     expect(screen.getByText('200')).toBeInTheDocument();
-    expect(screen.getByText('0.6200')).toBeInTheDocument();
-    expect(screen.getByText('Cluster 0 (High Spend, Low Income)')).toBeInTheDocument();
+    expect(screen.getByText('Group 1')).toBeInTheDocument();
   });
 
-  it('renders cluster profiles card with feature statistics', () => {
+  it('renders cluster profiles card with feature statistics and comparisons', () => {
     render(<ClusterProfilesCard model={sampleModel} />);
 
-    expect(screen.getByText('Customer Segment Profiles & Feature Statistics')).toBeInTheDocument();
-    expect(screen.getByText('Cluster 0 (High Spend, Low Income)')).toBeInTheDocument();
+    expect(screen.getByText('What Makes Each Group Different')).toBeInTheDocument();
+    expect(screen.getAllByText('Group 1').length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText('annual_income').length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText('spending_score').length).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByText('25,000').length).toBeGreaterThanOrEqual(1);
   });
 
   it('renders clustering history list with runs and selection action', () => {
@@ -157,9 +155,9 @@ describe('Phase 5 Clustering Frontend Components', () => {
       </QueryClientProvider>
     );
 
-    expect(screen.getByText('Segmentation History & Models')).toBeInTheDocument();
+    expect(screen.getByText('Previous Groups & History')).toBeInTheDocument();
     expect(screen.getByText('Customer Segmentation (Income vs Spend)')).toBeInTheDocument();
-    expect(screen.getByText('K = 3')).toBeInTheDocument();
+    expect(screen.getByText('3 Groups')).toBeInTheDocument();
 
     const viewButton = screen.getByRole('button', { name: /View/i });
     expect(viewButton).toBeInTheDocument();

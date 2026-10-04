@@ -11,6 +11,7 @@ class AnomalyFeatureInfo(BaseModel):
     max: Optional[float] = None
     mean: Optional[float] = None
     std: Optional[float] = None
+    is_identifier: bool = False
 
 class AnomalyFeaturesResponse(BaseModel):
     dataset_id: int

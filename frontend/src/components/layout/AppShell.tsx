@@ -41,7 +41,7 @@ const navItems: NavItem[] = [
   { name: 'Anomaly Detection', href: '/anomalies', icon: ShieldAlert },
   { name: 'Business Insights', href: '/insights', icon: Sparkles },
   { name: 'Reports & Exports', href: '/reports', icon: FileSpreadsheet },
-  { name: 'Model Management', href: '/registry', icon: Layers },
+  { name: 'Saved Models', href: '/registry', icon: Layers },
   { name: 'History', href: '/history', icon: History },
   { name: 'Profile / Settings', href: '/settings', icon: Settings },
 ];

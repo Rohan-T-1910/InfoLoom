@@ -13,22 +13,18 @@ import { Badge } from '../ui/badge';
 import {
   TrendingUp,
   Calendar,
-  Layers,
   Sparkles,
   AlertTriangle,
   Play,
-  RotateCcw,
-  CheckCircle2,
   Clock,
-  ArrowRight,
-  ShieldCheck,
+  ChevronDown,
+  Sliders,
 } from 'lucide-react';
 
 interface ForecastingConfigProps {
   dataset: Dataset;
   onEvaluationComplete: (res: ForecastEvaluationResponse) => void;
   onRunComplete: (model: ForecastModelResponse) => void;
-  externalTriggerRun?: boolean;
 }
 
 export const ForecastingConfig: React.FC<ForecastingConfigProps> = ({
@@ -36,56 +32,55 @@ export const ForecastingConfig: React.FC<ForecastingConfigProps> = ({
   onEvaluationComplete,
   onRunComplete,
 }) => {
-  const [useCleaned, setUseCleaned] = useState<boolean>(true);
-  const [selectedDateCol, setSelectedDateCol] = useState<string>('');
   const [selectedTargetCol, setSelectedTargetCol] = useState<string>('');
+  const [selectedDateCol, setSelectedDateCol] = useState<string>('');
   const [horizon, setHorizon] = useState<number>(14);
   const [frequency, setFrequency] = useState<string>('auto');
   const [customName, setCustomName] = useState<string>('');
+  const [showAdvanced, setShowAdvanced] = useState<boolean>(false);
 
   const [isEvaluating, setIsEvaluating] = useState<boolean>(false);
   const [isRunning, setIsRunning] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // Fetch candidate columns for this dataset
+  // Fetch candidate columns
   const {
     data: columnsData,
     isLoading: isLoadingColumns,
-    error: columnsError,
   } = useQuery<ForecastingColumnsResponse>({
-    queryKey: ['forecasting-columns', dataset.id, useCleaned],
-    queryFn: () => api.inspectForecastingColumns(dataset.id, useCleaned),
+    queryKey: ['forecasting-columns', dataset.id],
+    queryFn: () => api.inspectForecastingColumns(dataset.id, true),
   });
 
-  // Auto-select recommended columns when data loads
+  const dateColumns = columnsData?.datetime_columns || columnsData?.date_columns || [];
+  const numericColumns = columnsData?.numeric_columns || [];
+  const hasDateCols = dateColumns.length > 0;
+  const hasNumericCols = numericColumns.length > 0;
+
+  // Auto-select recommended columns
   useEffect(() => {
     if (columnsData) {
       if (!selectedDateCol && columnsData.recommended_date_column) {
         setSelectedDateCol(columnsData.recommended_date_column);
-      } else if (
-        !selectedDateCol &&
-        columnsData.datetime_columns &&
-        columnsData.datetime_columns.length > 0
-      ) {
-        setSelectedDateCol(columnsData.datetime_columns[0].name);
+      } else if (!selectedDateCol && dateColumns.length > 0) {
+        setSelectedDateCol(dateColumns[0].name);
       }
 
       if (!selectedTargetCol && columnsData.recommended_target_column) {
         setSelectedTargetCol(columnsData.recommended_target_column);
-      } else if (
-        !selectedTargetCol &&
-        columnsData.numeric_columns &&
-        columnsData.numeric_columns.length > 0
-      ) {
-        setSelectedTargetCol(columnsData.numeric_columns[0].name);
+      } else if (!selectedTargetCol && numericColumns.length > 0) {
+        const priorityTarget = numericColumns.find((c) =>
+          /amount|total|sales|revenue|quantity|price/i.test(c.name)
+        );
+        setSelectedTargetCol(priorityTarget ? priorityTarget.name : numericColumns[0].name);
       }
     }
-  }, [columnsData, selectedDateCol, selectedTargetCol]);
+  }, [columnsData, selectedDateCol, selectedTargetCol, dateColumns, numericColumns]);
 
-  // Handle Backtest Evaluation
+  // Handle Historical Backtest Test
   const handleEvaluate = async () => {
     if (!selectedDateCol || !selectedTargetCol) {
-      setErrorMessage('Please select both a date/time column and a numeric target column.');
+      setErrorMessage('Please select what you want to forecast and which date column to use.');
       return;
     }
     setErrorMessage(null);
@@ -95,21 +90,22 @@ export const ForecastingConfig: React.FC<ForecastingConfigProps> = ({
         date_column: selectedDateCol,
         target_column: selectedTargetCol,
         horizon: Number(horizon),
+        forecast_horizon: Number(horizon),
         frequency: frequency === 'auto' ? null : frequency,
-        use_cleaned: useCleaned,
+        use_cleaned: true,
       });
       onEvaluationComplete(res);
     } catch (err: any) {
-      setErrorMessage(err.message || 'Failed to evaluate forecasting backtest.');
+      setErrorMessage(err?.message || 'Failed to check historical accuracy. Please check column selections.');
     } finally {
       setIsEvaluating(false);
     }
   };
 
-  // Handle Full Forecast Run
+  // Handle Generate Forecast
   const handleRun = async () => {
     if (!selectedDateCol || !selectedTargetCol) {
-      setErrorMessage('Please select both a date/time column and a numeric target column.');
+      setErrorMessage('Please select what you want to forecast and which date column to use.');
       return;
     }
     setErrorMessage(null);
@@ -119,64 +115,52 @@ export const ForecastingConfig: React.FC<ForecastingConfigProps> = ({
         date_column: selectedDateCol,
         target_column: selectedTargetCol,
         horizon: Number(horizon),
+        forecast_horizon: Number(horizon),
         frequency: frequency === 'auto' ? null : frequency,
-        name: customName.trim() || undefined,
-        use_cleaned: useCleaned,
+        name: customName.trim() || `${selectedTargetCol} Forecast (${horizon} periods)`,
+        use_cleaned: true,
       });
       onRunComplete(model);
     } catch (err: any) {
-      setErrorMessage(err.message || 'Failed to generate time-series forecast.');
+      setErrorMessage(err?.message || 'Unable to generate forecast for the selected series.');
     } finally {
       setIsRunning(false);
     }
   };
 
-  const hasDatetime = columnsData?.datetime_columns && columnsData.datetime_columns.length > 0;
-  const hasNumeric = columnsData?.numeric_columns && columnsData.numeric_columns.length > 0;
   const totalRows = columnsData?.total_rows || dataset.row_count || 0;
-  const isTooSmall = totalRows > 0 && totalRows < 15;
+  const isTooSmall = totalRows > 0 && totalRows < 10;
 
   return (
-    <Card className="border border-white/[0.08] bg-[#0c0818]/90 overflow-hidden">
+    <Card className="border border-white/[0.08] bg-[#0c0818]/90 overflow-hidden shadow-xl">
       <CardHeader className="pb-4 border-b border-white/[0.06]">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <div className="flex items-center gap-2">
-              <TrendingUp className="w-5 h-5 text-purple-400" />
+              <TrendingUp className="w-5 h-5 text-cyan-400" />
               <CardTitle className="text-base font-semibold text-white">
-                Forecast Configuration
+                Forecast Setup
               </CardTitle>
             </div>
             <CardDescription className="text-xs text-slate-400 mt-1">
-              Select date and target columns, choose time resolution, and set your future horizon.
+              Select what to forecast, choose the timeline, and specify how far ahead to project.
             </CardDescription>
           </div>
-
-          {/* Cleaned vs Raw Toggle */}
-          <div className="flex items-center gap-2 bg-[#090514] px-3 py-1.5 rounded-xl border border-white/[0.08]">
-            <input
-              type="checkbox"
-              id="use-cleaned-forecast"
-              checked={useCleaned}
-              onChange={(e) => setUseCleaned(e.target.checked)}
-              className="accent-purple-500 w-3.5 h-3.5 rounded cursor-pointer"
-            />
-            <label
-              htmlFor="use-cleaned-forecast"
-              className="text-xs text-slate-300 cursor-pointer select-none font-medium"
-            >
-              Use Cleaned Data
-            </label>
-          </div>
+          <Badge variant="purple" className="text-[11px] self-start sm:self-auto">
+            {dataset.original_filename} ({totalRows.toLocaleString()} rows)
+          </Badge>
         </div>
       </CardHeader>
 
       <CardContent className="p-6 space-y-6">
-        {/* Error / Warning Alerts */}
+        {/* Error / Warning Alert */}
         {errorMessage && (
-          <div className="p-3.5 rounded-xl border border-rose-500/30 bg-rose-500/10 text-rose-300 text-xs flex items-center gap-2.5">
-            <AlertTriangle className="w-4 h-4 shrink-0 text-rose-400" />
-            <span>{errorMessage}</span>
+          <div className="p-4 rounded-xl border border-rose-500/30 bg-rose-500/10 text-rose-300 text-xs flex items-start gap-3">
+            <AlertTriangle className="w-4 h-4 shrink-0 text-rose-400 mt-0.5" />
+            <div>
+              <p className="font-semibold mb-0.5">Setup Notice</p>
+              <p>{errorMessage}</p>
+            </div>
           </div>
         )}
 
@@ -184,84 +168,110 @@ export const ForecastingConfig: React.FC<ForecastingConfigProps> = ({
           <div className="p-3.5 rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-300 text-xs flex items-center gap-2.5">
             <AlertTriangle className="w-4 h-4 shrink-0 text-amber-400" />
             <span>
-              This dataset only has <strong>{totalRows}</strong> rows. Reliable time-series modeling requires at least 15 chronological observations.
+              This dataset has only <strong>{totalRows}</strong> rows. Reliable forecasts generally require at least 15 chronological records.
             </span>
           </div>
         )}
 
-        {!isLoadingColumns && !hasDatetime && (
+        {!isLoadingColumns && !hasDateCols && (
           <div className="p-3.5 rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-300 text-xs flex items-center gap-2.5">
             <AlertTriangle className="w-4 h-4 shrink-0 text-amber-400" />
             <span>
-              No parseable date/timestamp columns found in this dataset. Make sure your dates are formatted as ISO 8601 (e.g. YYYY-MM-DD) or common timestamp representations.
+              No recognized date or timestamp columns found in this dataset. Please ensure dates are in standard formats (e.g. YYYY-MM-DD).
             </span>
           </div>
         )}
 
-        {/* Input Controls Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* 1. Date Column */}
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium text-slate-300 flex items-center gap-1.5">
-              <Calendar className="w-3.5 h-3.5 text-purple-400" />
-              Date / Time Column
+        {/* 3 Core Business Questions */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* Question 1: What are you forecasting? */}
+          <div className="space-y-2">
+            <label className="text-xs font-semibold text-white flex items-center gap-1.5">
+              <TrendingUp className="w-4 h-4 text-cyan-400" />
+              What are you forecasting?
             </label>
-            <select
-              value={selectedDateCol}
-              onChange={(e) => setSelectedDateCol(e.target.value)}
-              disabled={isLoadingColumns || !hasDatetime}
-              className="w-full bg-[#090514] border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-purple-500 transition-colors disabled:opacity-50"
-            >
-              <option value="">Select date column...</option>
-              {columnsData?.datetime_columns.map((c) => (
-                <option key={c.name} value={c.name}>
-                  {c.name} ({c.non_null_count} valid dates)
-                </option>
-              ))}
-            </select>
-            {columnsData?.recommended_date_column && (
-              <span className="text-[10px] text-purple-400 font-mono">
-                Suggested: {columnsData.recommended_date_column}
-              </span>
-            )}
-          </div>
-
-          {/* 2. Target Column */}
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium text-slate-300 flex items-center gap-1.5">
-              <TrendingUp className="w-3.5 h-3.5 text-cyan-400" />
-              Numeric Target Column
-            </label>
+            <p className="text-[11px] text-slate-400">
+              The business measure you want to estimate into the future.
+            </p>
             <select
               value={selectedTargetCol}
               onChange={(e) => setSelectedTargetCol(e.target.value)}
-              disabled={isLoadingColumns || !hasNumeric}
-              className="w-full bg-[#090514] border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-purple-500 transition-colors disabled:opacity-50"
+              disabled={isLoadingColumns || !hasNumericCols}
+              className="w-full bg-[#090514] border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-cyan-500 transition-colors disabled:opacity-50"
             >
-              <option value="">Select target value...</option>
-              {columnsData?.numeric_columns.map((c) => (
+              <option value="">Select business metric...</option>
+              {numericColumns.map((c) => (
                 <option key={c.name} value={c.name}>
-                  {c.name} ({c.non_null_count} rows)
+                  {c.name}
                 </option>
               ))}
             </select>
             {columnsData?.recommended_target_column && (
-              <span className="text-[10px] text-cyan-400 font-mono">
-                Suggested: {columnsData.recommended_target_column}
+              <span className="text-[10px] text-cyan-400 block">
+                Recommended: {columnsData.recommended_target_column}
               </span>
             )}
           </div>
 
-          {/* 3. Horizon */}
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between">
-              <label className="text-xs font-medium text-slate-300 flex items-center gap-1.5">
-                <Clock className="w-3.5 h-3.5 text-indigo-400" />
-                Forecast Horizon
-              </label>
-              <span className="text-xs font-mono font-bold text-white bg-white/[0.06] px-2 py-0.5 rounded">
-                {horizon} steps
+          {/* Question 2: Which timeline should we use? */}
+          <div className="space-y-2">
+            <label className="text-xs font-semibold text-white flex items-center gap-1.5">
+              <Calendar className="w-4 h-4 text-purple-400" />
+              Which timeline should we use?
+            </label>
+            <p className="text-[11px] text-slate-400">
+              The date column that defines your chronological order.
+            </p>
+            <select
+              value={selectedDateCol}
+              onChange={(e) => setSelectedDateCol(e.target.value)}
+              disabled={isLoadingColumns || !hasDateCols}
+              className="w-full bg-[#090514] border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-purple-500 transition-colors disabled:opacity-50"
+            >
+              <option value="">Select date column...</option>
+              {dateColumns.map((c) => (
+                <option key={c.name} value={c.name}>
+                  {c.name} ({c.non_null_count || totalRows} recorded dates)
+                </option>
+              ))}
+            </select>
+            {columnsData?.recommended_date_column && (
+              <span className="text-[10px] text-purple-400 block">
+                Recommended: {columnsData.recommended_date_column}
               </span>
+            )}
+          </div>
+
+          {/* Question 3: How far ahead? */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-semibold text-white flex items-center gap-1.5">
+                <Clock className="w-4 h-4 text-emerald-400" />
+                How far ahead?
+              </label>
+              <span className="text-xs font-mono font-bold text-cyan-400 bg-cyan-950/60 border border-cyan-800/40 px-2 py-0.5 rounded">
+                {horizon} periods
+              </span>
+            </div>
+            <p className="text-[11px] text-slate-400">
+              Choose how many future periods to project.
+            </p>
+            {/* Quick preset buttons: 7 / 14 / 30 / 60 */}
+            <div className="grid grid-cols-4 gap-1.5 pt-1">
+              {[7, 14, 30, 60].map((preset) => (
+                <button
+                  key={preset}
+                  type="button"
+                  onClick={() => setHorizon(preset)}
+                  className={`py-1.5 rounded-lg text-xs font-medium transition-all ${
+                    horizon === preset
+                      ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/50 font-bold shadow-sm shadow-cyan-950/50'
+                      : 'bg-white/[0.03] text-slate-400 hover:text-white border border-white/[0.06]'
+                  }`}
+                >
+                  {preset} periods
+                </button>
+              ))}
             </div>
             <input
               type="range"
@@ -269,50 +279,72 @@ export const ForecastingConfig: React.FC<ForecastingConfigProps> = ({
               max={60}
               value={horizon}
               onChange={(e) => setHorizon(parseInt(e.target.value, 10))}
-              className="w-full accent-purple-500 cursor-pointer"
+              className="w-full accent-cyan-400 cursor-pointer pt-2"
             />
-            <div className="flex justify-between text-[10px] text-slate-500 font-mono">
-              <span>1 step</span>
-              <span>30 steps</span>
-              <span>60 steps</span>
-            </div>
-          </div>
-
-          {/* 4. Frequency */}
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium text-slate-300 flex items-center gap-1.5">
-              <Layers className="w-3.5 h-3.5 text-emerald-400" />
-              Temporal Resolution
-            </label>
-            <select
-              value={frequency}
-              onChange={(e) => setFrequency(e.target.value)}
-              className="w-full bg-[#090514] border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-purple-500 transition-colors"
-            >
-              <option value="auto">Auto-Detect Cadence</option>
-              <option value="D">Daily (D)</option>
-              <option value="h">Hourly (h)</option>
-              <option value="W">Weekly (W)</option>
-              <option value="M">Monthly (M)</option>
-              <option value="B">Business Days (B)</option>
-            </select>
-            <span className="text-[10px] text-slate-400">
-              Duplicates averaged, gaps regularized
-            </span>
           </div>
         </div>
 
-        {/* Model Name & Action Bar */}
-        <div className="pt-4 border-t border-white/[0.06] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex-1 max-w-sm">
-            <input
-              type="text"
-              placeholder={`Forecast Name (e.g. ${selectedTargetCol || 'Sales'} Projection)`}
-              value={customName}
-              onChange={(e) => setCustomName(e.target.value)}
-              className="w-full bg-[#090514] border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-purple-500"
-            />
-          </div>
+        {/* Collapsible Additional Options (Out of main visual flow) */}
+        <div className="pt-2 border-t border-white/[0.04]">
+          <button
+            type="button"
+            onClick={() => setShowAdvanced(!showAdvanced)}
+            className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-slate-200 font-medium transition-colors"
+          >
+            <Sliders className="w-3.5 h-3.5 text-slate-500" />
+            <span>Additional Options</span>
+            <ChevronDown className={`w-3.5 h-3.5 transition-transform ${showAdvanced ? 'rotate-180' : ''}`} />
+          </button>
+
+          {showAdvanced && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-3 p-4 rounded-xl bg-white/[0.02] border border-white/[0.04]">
+              <div className="space-y-1.5">
+                <label className="text-xs text-slate-300 font-medium">Time Interval</label>
+                <select
+                  value={frequency}
+                  onChange={(e) => setFrequency(e.target.value)}
+                  className="w-full bg-[#090514] border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-500"
+                >
+                  <option value="auto">Auto-Detect Interval</option>
+                  <option value="D">Daily</option>
+                  <option value="W">Weekly</option>
+                  <option value="M">Monthly</option>
+                  <option value="h">Hourly</option>
+                </select>
+                <span className="text-[10px] text-slate-500 block">
+                  Aligns records into regular business calendar buckets.
+                </span>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs text-slate-300 font-medium">Forecast Name (Optional)</label>
+                <input
+                  type="text"
+                  placeholder={`e.g. ${selectedTargetCol || 'Sales'} Projection`}
+                  value={customName}
+                  onChange={(e) => setCustomName(e.target.value)}
+                  className="w-full bg-[#090514] border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500"
+                />
+                <span className="text-[10px] text-slate-500 block">
+                  Name used to identify this run in previous forecasts.
+                </span>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Action Bar */}
+        <div className="pt-2 border-t border-white/[0.06] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <p className="text-xs text-slate-400">
+            {selectedTargetCol && selectedDateCol ? (
+              <span>
+                Ready to project <strong className="text-white">{selectedTargetCol}</strong> over next{' '}
+                <strong className="text-cyan-400">{horizon} periods</strong>.
+              </span>
+            ) : (
+              'Select what to forecast and your timeline above to proceed.'
+            )}
+          </p>
 
           <div className="flex items-center gap-3">
             <Button
@@ -320,10 +352,10 @@ export const ForecastingConfig: React.FC<ForecastingConfigProps> = ({
               size="sm"
               onClick={handleEvaluate}
               disabled={isEvaluating || isRunning || !selectedDateCol || !selectedTargetCol || isTooSmall}
-              className="text-xs"
+              className="text-xs text-slate-300 hover:text-white"
             >
               <Sparkles className={`w-3.5 h-3.5 mr-1.5 text-purple-400 ${isEvaluating ? 'animate-spin' : ''}`} />
-              {isEvaluating ? 'Testing Accuracy...' : 'Test Accuracy'}
+              {isEvaluating ? 'Testing...' : 'Check Historical Accuracy'}
             </Button>
 
             <Button
@@ -331,7 +363,7 @@ export const ForecastingConfig: React.FC<ForecastingConfigProps> = ({
               size="sm"
               onClick={handleRun}
               disabled={isRunning || isEvaluating || !selectedDateCol || !selectedTargetCol || isTooSmall}
-              className="text-xs"
+              className="text-xs bg-cyan-600 hover:bg-cyan-500 text-white font-medium shadow-md shadow-cyan-950/40"
             >
               <Play className={`w-3.5 h-3.5 mr-1.5 fill-current ${isRunning ? 'animate-pulse' : ''}`} />
               {isRunning ? 'Generating Forecast...' : 'Generate Forecast'}

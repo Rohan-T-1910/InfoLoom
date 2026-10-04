@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { MLModelLeaderboardItem, MLTaskType } from '../../types';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../ui/card';
 import { Button } from '../ui/button';
@@ -7,12 +7,16 @@ import {
   Trophy,
   Zap,
   Award,
+  Bookmark,
+  Check,
 } from 'lucide-react';
+import { api } from '../../services/api';
 
 interface MLLeaderboardProps {
   models: MLModelLeaderboardItem[];
   bestModelId?: number | null;
   selectedModelId?: number | null;
+  datasetId?: number | null;
   onSelectModel: (model: MLModelLeaderboardItem) => void;
   onPredictWithModel: (model: MLModelLeaderboardItem) => void;
 }
@@ -21,9 +25,32 @@ export const MLLeaderboard: React.FC<MLLeaderboardProps> = ({
   models,
   bestModelId,
   selectedModelId,
+  datasetId,
   onSelectModel,
   onPredictWithModel,
 }) => {
+  const [savingModelId, setSavingModelId] = useState<number | null>(null);
+  const [savedModelIds, setSavedModelIds] = useState<Set<number>>(new Set());
+
+  const handleSaveModel = async (model: MLModelLeaderboardItem) => {
+    const targetDatasetId = datasetId || (model as any).dataset_id;
+    if (!targetDatasetId) return;
+    setSavingModelId(model.id);
+    try {
+      await api.registerModel({
+        name: `${model.name || model.algorithm} Predictor`,
+        dataset_id: targetDatasetId,
+        source_model_id: model.id,
+        description: `Trained ${model.task_type} model (${model.algorithm})`,
+        set_active: true,
+      });
+      setSavedModelIds((prev) => new Set(prev).add(model.id));
+    } catch (e) {
+      console.error('Failed to save model:', e);
+    } finally {
+      setSavingModelId(null);
+    }
+  };
   if (models.length === 0) {
     return (
       <Card className="border-white/[0.08] bg-[#0c0817]/90 p-8 text-center">
@@ -77,15 +104,36 @@ export const MLLeaderboard: React.FC<MLLeaderboardProps> = ({
                 <strong className="text-white">{bestModelName}</strong> achieved the strongest results on unseen data.
               </span>
             </div>
-            <Button
-              variant="glow"
-              size="sm"
-              onClick={() => onPredictWithModel(bestModel)}
-              className="h-7 text-xs self-start sm:self-auto"
-            >
-              <Zap className="w-3 h-3 mr-1" />
-              Predict with Best Model
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleSaveModel(bestModel)}
+                disabled={savingModelId === bestModel.id || savedModelIds.has(bestModel.id)}
+                className="h-7 text-xs text-purple-300 border-purple-500/30 hover:bg-purple-950/40"
+              >
+                {savedModelIds.has(bestModel.id) ? (
+                  <>
+                    <Check className="w-3 h-3 mr-1 text-emerald-400" />
+                    Saved
+                  </>
+                ) : (
+                  <>
+                    <Bookmark className="w-3 h-3 mr-1" />
+                    {savingModelId === bestModel.id ? 'Saving...' : 'Save Best Model'}
+                  </>
+                )}
+              </Button>
+              <Button
+                variant="glow"
+                size="sm"
+                onClick={() => onPredictWithModel(bestModel)}
+                className="h-7 text-xs self-start sm:self-auto"
+              >
+                <Zap className="w-3 h-3 mr-1" />
+                Predict with Best Model
+              </Button>
+            </div>
           </div>
         )}
 
@@ -274,6 +322,23 @@ export const MLLeaderboard: React.FC<MLLeaderboardProps> = ({
                     {/* Actions */}
                     <td className="py-3.5 px-4 text-right">
                       <div className="flex items-center justify-end gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleSaveModel(model)}
+                          disabled={savingModelId === model.id || savedModelIds.has(model.id)}
+                          className="h-7 text-xs px-2 text-purple-300 hover:text-white"
+                          title="Save model for future predictions"
+                        >
+                          {savedModelIds.has(model.id) ? (
+                            <Check className="w-3 h-3 text-emerald-400" />
+                          ) : (
+                            <Bookmark className="w-3 h-3" />
+                          )}
+                          <span className="ml-1 hidden sm:inline">
+                            {savedModelIds.has(model.id) ? 'Saved' : 'Save'}
+                          </span>
+                        </Button>
                         <button
                           type="button"
                           onClick={() => onSelectModel(model)}

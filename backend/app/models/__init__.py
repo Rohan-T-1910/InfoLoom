@@ -8,5 +8,6 @@ from app.models.forecasting import ForecastModel
 from app.models.anomaly import AnomalyModel
 from app.models.insight import InsightReport
 from app.models.report import ReportDocument
+from app.models.model_registry import RegisteredModel
 
-__all__ = ["User", "Dataset", "CleaningReport", "EDAReport", "MLJob", "MLModel", "ClusteringModel", "ForecastModel", "AnomalyModel", "InsightReport", "ReportDocument"]
+__all__ = ["User", "Dataset", "CleaningReport", "EDAReport", "MLJob", "MLModel", "ClusteringModel", "ForecastModel", "AnomalyModel", "InsightReport", "ReportDocument", "RegisteredModel"]

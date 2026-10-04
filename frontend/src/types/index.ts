@@ -209,15 +209,19 @@ export interface MLTrainRequest {
 
 export interface MLModelLeaderboardItem {
   id: number;
+  name?: string;
   algorithm: string;
-  algorithm_name: string;
+  algorithm_name?: string;
   task_type: MLTaskType;
-  test_metrics: Record<string, number | null>;
-  cv_mean: number | null;
-  cv_std: number | null;
-  primary_metric_name: string;
-  primary_metric_value: number | null;
-  status: string;
+  test_metrics?: Record<string, number | null>;
+  metrics?: Record<string, any>;
+  hyperparameters?: Record<string, any>;
+  is_best?: boolean;
+  cv_mean?: number | null;
+  cv_std?: number | null;
+  primary_metric_name?: string;
+  primary_metric_value?: number | null;
+  status?: string;
   error_message?: string | null;
   created_at: string;
 }
@@ -242,15 +246,16 @@ export interface MLJob {
 export interface MLModelDetail extends MLModelLeaderboardItem {
   job_id: number;
   dataset_id: number;
-  features_numeric: string[];
-  features_categorical: string[];
+  feature_names?: string[];
+  features_numeric?: string[];
+  features_categorical?: string[];
   target_column: string;
   target_classes?: string[] | null;
   cv_scores?: number[] | null;
 }
 
 export interface MLPredictRequest {
-  inputs: Record<string, any>[];
+  inputs: Record<string, any>[] | Record<string, any>;
 }
 
 export interface MLPredictionItem {
@@ -260,9 +265,12 @@ export interface MLPredictionItem {
 
 export interface MLPredictResponse {
   model_id: number;
-  algorithm: string;
-  task_type: MLTaskType;
-  predictions: MLPredictionItem[];
+  model_name?: string;
+  algorithm?: string;
+  task_type: MLTaskType | string;
+  predictions: any[];
+  probabilities?: Record<string, number>[] | null;
+  feature_names?: string[];
 }
 
 // ==========================================
@@ -390,6 +398,7 @@ export interface ForecastingColumnsResponse {
   is_cleaned: boolean;
   total_rows: number;
   datetime_columns: ForecastingColumnInfo[];
+  date_columns?: ForecastingColumnInfo[];
   numeric_columns: ForecastingColumnInfo[];
   recommended_date_column?: string | null;
   recommended_target_column?: string | null;
@@ -399,17 +408,20 @@ export interface ForecastEvaluationRequest {
   date_column: string;
   target_column: string;
   horizon?: number;
+  forecast_horizon?: number;
   frequency?: string | null;
   use_cleaned?: boolean;
 }
 
 export interface TimeSeriesPoint {
   timestamp: string;
+  date?: string;
   value: number;
 }
 
 export interface ForecastBacktestPoint {
   timestamp: string;
+  date?: string;
   actual: number;
   predicted: number;
   error: number;
@@ -423,28 +435,35 @@ export interface ForecastEvaluationMetrics {
   mae: number;
   r2?: number | null;
   directional_accuracy?: number | null;
-  test_samples: number;
-  train_samples: number;
+  direction_accuracy?: number | null;
+  validation_horizon?: number;
+  test_samples?: number;
+  train_samples?: number;
 }
 
 export interface ForecastEvaluationResponse {
   date_column: string;
   target_column: string;
   horizon: number;
+  validation_horizon?: number;
   frequency: string;
   total_observations: number;
+  n_historical_points?: number;
   date_min: string;
   date_max: string;
   model_name: string;
   model_order: number[];
   metrics: ForecastEvaluationMetrics;
   backtest_points: ForecastBacktestPoint[];
+  validation_points?: ForecastBacktestPoint[];
+  summary_notes?: string;
 }
 
 export interface ForecastRunRequest {
   date_column: string;
   target_column: string;
   horizon?: number;
+  forecast_horizon?: number;
   frequency?: string | null;
   name?: string | null;
   use_cleaned?: boolean;
@@ -452,6 +471,7 @@ export interface ForecastRunRequest {
 
 export interface FutureForecastPoint {
   timestamp: string;
+  date?: string;
   forecast: number;
   lower_ci: number;
   upper_ci: number;
@@ -466,17 +486,21 @@ export interface ForecastModelResponse {
   target_column: string;
   frequency: string;
   horizon: number;
+  forecast_horizon?: number;
   model_type: string;
   model_order: number[];
+  model_parameters?: Record<string, any>;
   aic?: number | null;
   bic?: number | null;
   metrics: ForecastEvaluationMetrics;
   historical_points: TimeSeriesPoint[];
   backtest_points?: ForecastBacktestPoint[] | null;
+  validation_points?: ForecastBacktestPoint[] | null;
   forecast_points: FutureForecastPoint[];
   date_min: string;
   date_max: string;
   total_observations: number;
+  n_historical_points?: number;
   use_cleaned: boolean;
   status: string;
   error_message?: string | null;
@@ -490,6 +514,7 @@ export interface ForecastModelSummary {
   target_column: string;
   frequency: string;
   horizon: number;
+  forecast_horizon?: number;
   model_type: string;
   mape: number;
   rmse: number;
@@ -510,6 +535,7 @@ export interface AnomalyFeatureInfo {
   max?: number | null;
   mean?: number | null;
   std?: number | null;
+  is_identifier?: boolean;
 }
 
 export interface AnomalyFeaturesResponse {
@@ -741,5 +767,60 @@ export interface CSVExportPreviewResponse {
   total_rows: number;
   columns: string[];
   preview_rows: Record<string, any>[];
+}
+
+// ==========================================
+// Phase 10: Model Registry & Management Types
+// ==========================================
+
+export interface RegisterModelRequest {
+  name: string;
+  dataset_id: number;
+  source_model_id?: number | null;
+  description?: string | null;
+  set_active?: boolean;
+  algorithm?: string;
+  task_type?: string;
+  target_column?: string;
+  feature_names?: string[];
+  target_classes?: any[];
+  metrics?: Record<string, any>;
+  training_parameters?: Record<string, any>;
+  artifact_path?: string;
+}
+
+export interface RollbackModelRequest {
+  target_version?: number | null;
+}
+
+export interface RegisteredModelResponse {
+  id: number;
+  name: string;
+  version: number;
+  description?: string | null;
+  user_id: number;
+  dataset_id: number;
+  dataset_name?: string | null;
+  source_model_id?: number | null;
+  algorithm: string;
+  task_type: string;
+  target_column: string;
+  feature_names: string[];
+  target_classes?: any[] | null;
+  metrics: Record<string, any>;
+  training_parameters: Record<string, any>;
+  artifact_path: string;
+  artifact_size_bytes?: number | null;
+  has_artifact: boolean;
+  status: string;
+  is_active: boolean;
+  activated_at?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface RegisteredModelListResponse {
+  items: RegisteredModelResponse[];
+  total: number;
 }
 

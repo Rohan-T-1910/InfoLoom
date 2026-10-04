@@ -16,7 +16,9 @@ import {
   TrendingUp,
   Split,
   Binary,
-  RotateCcw,
+  ShieldCheck,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 
 interface MLTrainingConfigProps {
@@ -26,9 +28,9 @@ interface MLTrainingConfigProps {
 }
 
 const REGRESSION_ALGORITHMS = [
-  { id: 'linear_regression', name: 'Linear Regression', desc: 'Fast, interpretable parametric baseline' },
-  { id: 'random_forest', name: 'Random Forest Regressor', desc: 'Ensemble of decision trees with bagging' },
-  { id: 'xgboost', name: 'XGBoost Regressor', desc: 'Extreme gradient boosting with regularization' },
+  { id: 'linear_regression', name: 'Linear Regression', desc: 'Fast, interpretable baseline approach' },
+  { id: 'random_forest', name: 'Random Forest Regressor', desc: 'Ensemble of decision trees that handles non-linear patterns' },
+  { id: 'xgboost', name: 'XGBoost Regressor', desc: 'High-performance gradient boosted decision trees' },
 ];
 
 const CLASSIFICATION_ALGORITHMS = [
@@ -36,6 +38,18 @@ const CLASSIFICATION_ALGORITHMS = [
   { id: 'random_forest', name: 'Random Forest Classifier', desc: 'Robust ensemble tree-based classifier' },
   { id: 'xgboost', name: 'XGBoost Classifier', desc: 'State-of-the-art gradient boosted trees' },
 ];
+
+const isIdentifierColumn = (name: string): boolean => {
+  const clean = name.toLowerCase().replace(/[\s_-]+/g, '');
+  return (
+    clean === 'id' ||
+    clean.endsWith('id') ||
+    clean.startsWith('id') ||
+    clean.includes('identifier') ||
+    clean.includes('transactionid') ||
+    clean.includes('customerid')
+  );
+};
 
 export const MLTrainingConfig: React.FC<MLTrainingConfigProps> = ({
   dataset,
@@ -52,6 +66,7 @@ export const MLTrainingConfig: React.FC<MLTrainingConfigProps> = ({
   const [testSize, setTestSize] = useState<number>(0.2);
   const [cvFolds, setCvFolds] = useState<number>(5);
   const [selectedFeatures, setSelectedFeatures] = useState<string[]>([]);
+  const [showAdvanced, setShowAdvanced] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Fetch preview to get column names and candidate targets
@@ -62,11 +77,16 @@ export const MLTrainingConfig: React.FC<MLTrainingConfigProps> = ({
 
   const columns = previewData?.columns || [];
 
+  // Filter out target from candidate features and detect identifier columns
+  const availableCandidateColumns = columns.filter((c) => c !== targetColumn);
+  const nonIdColumns = availableCandidateColumns.filter((c) => !isIdentifierColumn(c));
+  const detectedIdColumns = availableCandidateColumns.filter((c) => isIdentifierColumn(c));
+
   // Set initial default target column
   useEffect(() => {
     if (columns.length > 0 && !targetColumn) {
-      // Pick last column or common target name as default
-      const candidate = columns[columns.length - 1];
+      // Pick last column or first non-id column as default
+      const candidate = columns.slice().reverse().find((c) => !isIdentifierColumn(c)) || columns[columns.length - 1];
       setTargetColumn(candidate);
     }
   }, [columns, targetColumn]);
@@ -88,9 +108,10 @@ export const MLTrainingConfig: React.FC<MLTrainingConfigProps> = ({
           : CLASSIFICATION_ALGORITHMS.map((a) => a.id);
       setSelectedAlgorithms(defaultAlgos);
 
-      // Initialize candidate features excluding the target
+      // Initialize candidate features excluding target AND excluding obvious identifiers
       if (inspection.candidate_features.length > 0) {
-        setSelectedFeatures(inspection.candidate_features);
+        const cleanFeatures = inspection.candidate_features.filter((f) => !isIdentifierColumn(f));
+        setSelectedFeatures(cleanFeatures.length > 0 ? cleanFeatures : inspection.candidate_features);
       }
     }
   }, [inspection]);
@@ -125,9 +146,13 @@ export const MLTrainingConfig: React.FC<MLTrainingConfigProps> = ({
     }
   };
 
-  const selectAllFeatures = () => {
-    const candidates = columns.filter((c) => c !== targetColumn);
-    setSelectedFeatures(candidates);
+  const selectAllUsefulFeatures = () => {
+    // Select all non-identifier features
+    if (nonIdColumns.length > 0) {
+      setSelectedFeatures(nonIdColumns);
+    } else {
+      setSelectedFeatures(availableCandidateColumns);
+    }
   };
 
   // Training mutation
@@ -147,15 +172,15 @@ export const MLTrainingConfig: React.FC<MLTrainingConfigProps> = ({
 
   const handleStartTraining = () => {
     if (!targetColumn) {
-      setErrorMessage('Please select a target column.');
+      setErrorMessage('Please select what you want to predict.');
       return;
     }
     if (selectedAlgorithms.length === 0) {
-      setErrorMessage('Please select at least one machine learning algorithm.');
+      setErrorMessage('Please select at least one prediction approach.');
       return;
     }
     if (selectedFeatures.length === 0) {
-      setErrorMessage('Please select at least one feature column for training.');
+      setErrorMessage('Please select at least one field to use for prediction.');
       return;
     }
 
@@ -174,6 +199,8 @@ export const MLTrainingConfig: React.FC<MLTrainingConfigProps> = ({
   const availableAlgorithms =
     taskType === 'regression' ? REGRESSION_ALGORITHMS : CLASSIFICATION_ALGORITHMS;
 
+  const isReady = Boolean(targetColumn && selectedFeatures.length > 0 && selectedAlgorithms.length > 0);
+
   return (
     <Card className="border-white/[0.08] bg-[#0c0817]/90 backdrop-blur-xl">
       <CardHeader className="pb-4 border-b border-white/[0.06]">
@@ -184,17 +211,17 @@ export const MLTrainingConfig: React.FC<MLTrainingConfigProps> = ({
             </div>
             <div>
               <CardTitle className="text-lg text-white font-semibold">
-                Model Training Configuration
+                Predictive Model Setup
               </CardTitle>
               <CardDescription className="text-xs text-slate-400">
-                Automated leak-free preprocessing, cross-validation, and multi-model benchmarking.
+                Choose what you want to predict, select information to use, and let InfoLoom compare the best approaches.
               </CardDescription>
             </div>
           </div>
 
           {dataset.has_cleaned && (
             <div className="flex items-center gap-2 bg-[#120d24] px-3 py-1.5 rounded-lg border border-purple-500/20">
-              <span className="text-xs text-slate-300">Cleaned Data:</span>
+              <span className="text-xs text-slate-300">Dataset Source:</span>
               <button
                 type="button"
                 onClick={() => setUseCleaned(!useCleaned)}
@@ -204,7 +231,7 @@ export const MLTrainingConfig: React.FC<MLTrainingConfigProps> = ({
                     : 'bg-white/5 text-slate-400 hover:text-white'
                 }`}
               >
-                {useCleaned ? 'Active (Cleaned)' : 'Raw Source'}
+                {useCleaned ? 'Cleaned Data' : 'Original Data'}
               </button>
             </div>
           )}
@@ -220,14 +247,17 @@ export const MLTrainingConfig: React.FC<MLTrainingConfigProps> = ({
           </div>
         )}
 
-        {/* Step 1: Target Column & Task Type */}
+        {/* 1. Target Column Selection */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           {/* Target Column Selector */}
           <div className="space-y-2">
-            <label className="text-xs font-semibold text-slate-300 flex items-center justify-between">
-              <span>Target Column (Prediction Goal)</span>
-              {isInspecting && <span className="text-purple-400 text-[11px] animate-pulse">Inspecting...</span>}
+            <label className="text-xs font-semibold text-slate-200 flex items-center justify-between">
+              <span>What do you want to predict?</span>
+              {isInspecting && <span className="text-purple-400 text-[11px] animate-pulse">Inspecting column...</span>}
             </label>
+            <p className="text-[11px] text-slate-400">
+              Choose the column InfoLoom should predict.
+            </p>
             <select
               value={targetColumn}
               onChange={(e) => setTargetColumn(e.target.value)}
@@ -244,13 +274,13 @@ export const MLTrainingConfig: React.FC<MLTrainingConfigProps> = ({
             {inspection && (
               <div className="mt-2.5 p-3 rounded-xl bg-purple-950/20 border border-purple-500/20 space-y-1.5">
                 <div className="flex items-center justify-between text-xs">
-                  <span className="text-slate-400">Detected Task:</span>
-                  <Badge variant="purple" className="capitalize text-[11px]">
-                    {inspection.inferred_task_type}
+                  <span className="text-slate-400">Outcome Nature:</span>
+                  <Badge variant="purple" className="text-[11px]">
+                    {taskType === 'regression' ? 'Numerical Outcome' : 'Category / Classification'}
                   </Badge>
                 </div>
                 <div className="flex items-center justify-between text-xs">
-                  <span className="text-slate-400">Distinct Values:</span>
+                  <span className="text-slate-400">Distinct Values in Target:</span>
                   <span className="text-slate-200 font-mono">{inspection.unique_count}</span>
                 </div>
                 {inspection.warning && (
@@ -263,10 +293,13 @@ export const MLTrainingConfig: React.FC<MLTrainingConfigProps> = ({
             )}
           </div>
 
-          {/* Task Type Switcher */}
+          {/* 2. Prediction Type (Category vs Number) */}
           <div className="space-y-2">
-            <label className="text-xs font-semibold text-slate-300">Machine Learning Task</label>
-            <div className="grid grid-cols-2 gap-3 pt-0.5">
+            <label className="text-xs font-semibold text-slate-200">Prediction type</label>
+            <p className="text-[11px] text-slate-400">
+              Specify whether the outcome is a distinct group or a continuous numerical value.
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-0.5">
               <button
                 type="button"
                 onClick={() => handleTaskTypeChange('classification')}
@@ -276,17 +309,20 @@ export const MLTrainingConfig: React.FC<MLTrainingConfigProps> = ({
                     : 'border-white/[0.08] bg-[#120d24] hover:border-white/20'
                 }`}
               >
-                <div className="flex items-center gap-2 mb-1">
-                  <Binary
-                    className={`w-4 h-4 ${
-                      taskType === 'classification' ? 'text-purple-400' : 'text-slate-400'
-                    }`}
-                  />
-                  <span className="text-sm font-semibold text-white">Classification</span>
+                <div className="flex items-center justify-between mb-1.5">
+                  <div className="flex items-center gap-2">
+                    <Binary
+                      className={`w-4 h-4 ${
+                        taskType === 'classification' ? 'text-purple-400' : 'text-slate-400'
+                      }`}
+                    />
+                    <span className="text-sm font-semibold text-white">Predict a category</span>
+                  </div>
                 </div>
-                <p className="text-[11px] text-slate-400">
-                  Predict discrete categories (e.g. churn, high/low, churned status).
+                <p className="text-[11px] text-slate-300 leading-relaxed mb-1.5">
+                  Use this when the answer is a group or outcome, such as Yes/No, High/Medium/Low, or customer churn.
                 </p>
+                <span className="text-[10px] text-purple-300/80 font-mono">Category (Classification)</span>
               </button>
 
               <button
@@ -298,170 +334,247 @@ export const MLTrainingConfig: React.FC<MLTrainingConfigProps> = ({
                     : 'border-white/[0.08] bg-[#120d24] hover:border-white/20'
                 }`}
               >
-                <div className="flex items-center gap-2 mb-1">
-                  <TrendingUp
-                    className={`w-4 h-4 ${
-                      taskType === 'regression' ? 'text-purple-400' : 'text-slate-400'
-                    }`}
-                  />
-                  <span className="text-sm font-semibold text-white">Regression</span>
+                <div className="flex items-center justify-between mb-1.5">
+                  <div className="flex items-center gap-2">
+                    <TrendingUp
+                      className={`w-4 h-4 ${
+                        taskType === 'regression' ? 'text-purple-400' : 'text-slate-400'
+                      }`}
+                    />
+                    <span className="text-sm font-semibold text-white">Predict a number</span>
+                  </div>
                 </div>
-                <p className="text-[11px] text-slate-400">
-                  Predict continuous numerical values (e.g. salary, revenue, price).
+                <p className="text-[11px] text-slate-300 leading-relaxed mb-1.5">
+                  Use this when the answer is a numerical value, such as sales, revenue, price, or quantity.
                 </p>
+                <span className="text-[10px] text-purple-300/80 font-mono">Numerical (Regression)</span>
               </button>
             </div>
           </div>
         </div>
 
-        {/* Step 2: Algorithm Selection */}
+        {/* 3. Prediction Approaches (Automated by default) */}
         <div className="space-y-2.5">
-          <label className="text-xs font-semibold text-slate-300 flex items-center justify-between">
-            <span>Model Comparison Suite ({selectedAlgorithms.length} selected)</span>
-            <span className="text-[11px] text-slate-400 font-normal">
-              All chosen models train under identical leak-free test folds
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+            <label className="text-xs font-semibold text-slate-200">Prediction approaches</label>
+            <span className="text-[11px] text-slate-400">
+              InfoLoom can test several approaches on your data and compare how well they predict the selected outcome.
             </span>
-          </label>
+          </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            {availableAlgorithms.map((algo) => {
-              const isSelected = selectedAlgorithms.includes(algo.id);
+          <div className="p-4 rounded-xl bg-[#120d24]/60 border border-white/[0.08] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-start gap-3">
+              <div className="w-9 h-9 rounded-lg bg-purple-600/20 border border-purple-500/30 flex items-center justify-center text-purple-400 shrink-0 mt-0.5">
+                <Sparkles className="w-4 h-4" />
+              </div>
+              <div>
+                <h4 className="text-sm font-semibold text-white flex items-center gap-2">
+                  <span>Automated Multi-Approach Testing</span>
+                  <Badge variant="purple" className="text-[10px]">
+                    {selectedAlgorithms.length} Approaches Selected
+                  </Badge>
+                </h4>
+                <p className="text-xs text-slate-300 mt-0.5 leading-relaxed">
+                  InfoLoom tests diverse models (linear, tree-based ensemble, and gradient-boosted) and benchmarks them on unseen data so you get the most accurate result automatically.
+                </p>
+              </div>
+            </div>
+
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setShowAdvanced(!showAdvanced)}
+              className="text-xs shrink-0 self-start sm:self-center"
+            >
+              <Sliders className="w-3.5 h-3.5 mr-1.5 text-purple-400" />
+              {showAdvanced ? 'Hide Advanced Settings' : 'Advanced Settings'}
+              {showAdvanced ? (
+                <ChevronUp className="w-3.5 h-3.5 ml-1.5 text-slate-400" />
+              ) : (
+                <ChevronDown className="w-3.5 h-3.5 ml-1.5 text-slate-400" />
+              )}
+            </Button>
+          </div>
+        </div>
+
+        {/* 4. Predictive Features Selection */}
+        <div className="space-y-2.5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+            <div>
+              <label className="text-xs font-semibold text-slate-200">
+                What information should we use?
+              </label>
+              <p className="text-[11px] text-slate-400">
+                Select the fields InfoLoom should use to make the prediction ({selectedFeatures.length} of {availableCandidateColumns.length} fields selected).
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={selectAllUsefulFeatures}
+              className="text-purple-400 hover:text-purple-300 text-xs font-medium self-start sm:self-auto"
+            >
+              Select all useful fields
+            </button>
+          </div>
+
+          {detectedIdColumns.length > 0 && (
+            <div className="p-2.5 rounded-lg bg-black/30 border border-white/[0.04] text-[11px] text-slate-400 flex items-center gap-2">
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+              <span>
+                Obvious identifier fields ({detectedIdColumns.join(', ')}) are excluded from predictive features by default to avoid misleading models.
+              </span>
+            </div>
+          )}
+
+          <div className="flex flex-wrap gap-2 max-h-36 overflow-y-auto p-3 rounded-xl bg-[#120d24]/60 border border-white/[0.06]">
+            {availableCandidateColumns.map((col) => {
+              const isSelected = selectedFeatures.includes(col);
+              const isId = isIdentifierColumn(col);
               return (
-                <div
-                  key={algo.id}
-                  onClick={() => toggleAlgorithm(algo.id)}
-                  className={`p-3.5 rounded-xl border cursor-pointer transition-all ${
+                <button
+                  key={col}
+                  type="button"
+                  onClick={() => toggleFeature(col)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-mono transition-all flex items-center gap-1.5 ${
                     isSelected
-                      ? 'border-purple-500/60 bg-purple-950/30'
-                      : 'border-white/[0.08] bg-[#120d24]/60 hover:border-white/20 opacity-60'
+                      ? 'bg-purple-600/30 text-purple-200 border border-purple-500/50 shadow-sm'
+                      : 'bg-white/5 text-slate-400 border border-transparent hover:text-white'
                   }`}
                 >
-                  <div className="flex items-start justify-between gap-2 mb-1">
-                    <span className="text-sm font-medium text-white">{algo.name}</span>
-                    <div
-                      className={`w-4 h-4 rounded flex items-center justify-center text-[10px] shrink-0 ${
-                        isSelected
-                          ? 'bg-purple-600 text-white'
-                          : 'border border-white/20 text-transparent'
-                      }`}
-                    >
-                      ✓
-                    </div>
-                  </div>
-                  <p className="text-[11px] text-slate-400 leading-relaxed">{algo.desc}</p>
-                </div>
+                  <span>{col}</span>
+                  {isId && (
+                    <span className="text-[9px] px-1 py-0.2 rounded bg-amber-950/60 text-amber-300 font-sans">
+                      ID
+                    </span>
+                  )}
+                </button>
               );
             })}
           </div>
         </div>
 
-        {/* Step 3: Validation Configuration (Split + CV Folds) */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 p-4 rounded-xl bg-[#120d24]/70 border border-white/[0.06]">
-          <div className="space-y-2">
-            <div className="flex items-center justify-between text-xs">
-              <span className="font-semibold text-slate-300 flex items-center gap-1.5">
-                <Split className="w-3.5 h-3.5 text-purple-400" />
-                Holdout Test Set Size
-              </span>
-              <span className="text-purple-300 font-mono font-semibold">
-                {Math.round(testSize * 100)}% ({Math.round((1 - testSize) * 100)}% Train)
-              </span>
+        {/* 5. Optional Advanced Settings (Algorithms & Validation) */}
+        {showAdvanced && (
+          <div className="p-5 rounded-2xl bg-black/40 border border-white/[0.08] space-y-5 animate-in fade-in duration-200">
+            <div className="flex items-center justify-between pb-3 border-b border-white/[0.06]">
+              <div className="flex items-center gap-2">
+                <Sliders className="w-4 h-4 text-purple-400" />
+                <h4 className="text-xs font-semibold text-white uppercase tracking-wider">
+                  Advanced Settings
+                </h4>
+              </div>
+              <span className="text-[11px] text-slate-500">For experienced data practitioners</span>
             </div>
-            <input
-              type="range"
-              min="0.1"
-              max="0.4"
-              step="0.05"
-              value={testSize}
-              onChange={(e) => setTestSize(parseFloat(e.target.value))}
-              className="w-full accent-purple-500 cursor-pointer"
-            />
-            <p className="text-[11px] text-slate-400">
-              Split occurs prior to fitting pipelines to prevent data leakage.
-            </p>
-          </div>
 
-          <div className="space-y-2">
-            <div className="flex items-center justify-between text-xs">
-              <span className="font-semibold text-slate-300 flex items-center gap-1.5">
-                <Layers className="w-3.5 h-3.5 text-purple-400" />
-                Cross-Validation Folds
-              </span>
-              <span className="text-purple-300 font-mono font-semibold">{cvFolds}-Fold CV</span>
+            {/* Algorithm Selection Checkboxes */}
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-slate-300">
+                Individual Model Algorithms ({selectedAlgorithms.length} selected)
+              </label>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {availableAlgorithms.map((algo) => {
+                  const isSelected = selectedAlgorithms.includes(algo.id);
+                  return (
+                    <div
+                      key={algo.id}
+                      onClick={() => toggleAlgorithm(algo.id)}
+                      className={`p-3 rounded-xl border cursor-pointer transition-all ${
+                        isSelected
+                          ? 'border-purple-500/60 bg-purple-950/30'
+                          : 'border-white/[0.08] bg-[#120d24]/60 hover:border-white/20 opacity-60'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-2 mb-1">
+                        <span className="text-xs font-semibold text-white">{algo.name}</span>
+                        <div
+                          className={`w-4 h-4 rounded flex items-center justify-center text-[10px] shrink-0 ${
+                            isSelected
+                              ? 'bg-purple-600 text-white'
+                              : 'border border-white/20 text-transparent'
+                          }`}
+                        >
+                          ✓
+                        </div>
+                      </div>
+                      <p className="text-[11px] text-slate-400 leading-relaxed">{algo.desc}</p>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
-            <div className="flex gap-2">
-              {[3, 5, 10].map((folds) => (
-                <button
-                  key={folds}
-                  type="button"
-                  onClick={() => setCvFolds(folds)}
-                  className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                    cvFolds === folds
-                      ? 'bg-purple-600 text-white shadow-sm'
-                      : 'bg-[#181130] text-slate-300 hover:bg-white/10'
-                  }`}
-                >
-                  {folds} Folds
-                </button>
-              ))}
+
+            {/* Validation Split & Folds */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 pt-2">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-medium text-slate-300 flex items-center gap-1.5">
+                    <Split className="w-3.5 h-3.5 text-purple-400" />
+                    Holdout Test Set Size
+                  </span>
+                  <span className="text-purple-300 font-mono font-semibold">
+                    {Math.round(testSize * 100)}% ({Math.round((1 - testSize) * 100)}% Training)
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min="0.1"
+                  max="0.4"
+                  step="0.05"
+                  value={testSize}
+                  onChange={(e) => setTestSize(parseFloat(e.target.value))}
+                  className="w-full accent-purple-500 cursor-pointer"
+                />
+                <p className="text-[11px] text-slate-400">
+                  InfoLoom automatically sets aside part of your data to check how well the model performs on data it has not seen before.
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-medium text-slate-300 flex items-center gap-1.5">
+                    <Layers className="w-3.5 h-3.5 text-purple-400" />
+                    Cross-Validation Folds
+                  </span>
+                  <span className="text-purple-300 font-mono font-semibold">{cvFolds}-Fold CV</span>
+                </div>
+                <div className="flex gap-2">
+                  {[3, 5, 10].map((folds) => (
+                    <button
+                      key={folds}
+                      type="button"
+                      onClick={() => setCvFolds(folds)}
+                      className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                        cvFolds === folds
+                          ? 'bg-purple-600 text-white shadow-sm'
+                          : 'bg-[#181130] text-slate-300 hover:bg-white/10'
+                      }`}
+                    >
+                      {folds} Folds
+                    </button>
+                  ))}
+                </div>
+                <p className="text-[11px] text-slate-400">
+                  Multiple validation folds ensure performance is reliable and not influenced by lucky splits.
+                </p>
+              </div>
             </div>
-            <p className="text-[11px] text-slate-400">
-              Evaluated strictly on the training partition for generalization tuning.
-            </p>
           </div>
-        </div>
+        )}
 
-        {/* Step 4: Feature Selection */}
-        <div className="space-y-2.5">
-          <div className="flex items-center justify-between text-xs">
-            <label className="font-semibold text-slate-300">
-              Predictive Features ({selectedFeatures.length} / {columns.length - 1} selected)
-            </label>
-            <button
-              type="button"
-              onClick={selectAllFeatures}
-              className="text-purple-400 hover:text-purple-300 text-[11px] font-medium"
-            >
-              Select All Available
-            </button>
-          </div>
-
-          <div className="flex flex-wrap gap-2 max-h-36 overflow-y-auto p-2.5 rounded-xl bg-[#120d24]/60 border border-white/[0.06]">
-            {columns
-              .filter((c) => c !== targetColumn)
-              .map((col) => {
-                const isSelected = selectedFeatures.includes(col);
-                return (
-                  <button
-                    key={col}
-                    type="button"
-                    onClick={() => toggleFeature(col)}
-                    className={`px-3 py-1 rounded-lg text-xs font-mono transition-all ${
-                      isSelected
-                        ? 'bg-purple-600/30 text-purple-200 border border-purple-500/50 shadow-sm'
-                        : 'bg-white/5 text-slate-400 border border-transparent hover:text-white'
-                    }`}
-                  >
-                    {col}
-                  </button>
-                );
-              })}
-          </div>
-        </div>
-
-        {/* Submit Button */}
+        {/* 6. Primary Action Button */}
         <div className="pt-2 flex justify-end">
           <Button
             variant="glow"
             size="lg"
             onClick={handleStartTraining}
-            disabled={trainMutation.isPending || isTrainingActive || !inspection?.is_supported}
+            disabled={!isReady || trainMutation.isPending || isTrainingActive || !inspection?.is_supported}
             className="w-full sm:w-auto"
           >
             {trainMutation.isPending ? (
               <span className="flex items-center gap-2">
                 <div className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
-                Scheduling ML Suite...
+                Starting Model Training...
               </span>
             ) : isTrainingActive ? (
               <span className="flex items-center gap-2">
@@ -469,9 +582,9 @@ export const MLTrainingConfig: React.FC<MLTrainingConfigProps> = ({
                 Training In Progress...
               </span>
             ) : (
-              <span className="flex items-center gap-2">
+              <span className="flex items-center gap-2 font-semibold">
                 <Sparkles className="w-4 h-4" />
-                Train & Benchmark {selectedAlgorithms.length} Models
+                Train & Compare Models
                 <ArrowRight className="w-4 h-4 ml-1" />
               </span>
             )}

@@ -27,6 +27,7 @@ from app.schemas.forecasting import (
     TimeSeriesNumericColumnInfo,
     TimeSeriesPoint,
 )
+from app.services.column_classifier import column_classifier
 from app.services.validation_service import validation_service
 
 # Suppress statsmodels frequency warnings
@@ -110,8 +111,10 @@ class ForecastingService:
                     )
                 )
 
-            # Check if column is numeric target candidate
+            # Check if column is numeric target candidate (exclude identifier columns)
             if pd.api.types.is_numeric_dtype(df[col]):
+                if column_classifier.is_identifier(col_name, series):
+                    continue
                 non_null = int(series.count())
                 missing = int(df[col].isna().sum())
                 mean_val = float(series.mean()) if non_null > 0 else None
@@ -133,14 +136,24 @@ class ForecastingService:
         # Select recommended columns
         recommended_date: Optional[str] = date_columns[0].name if date_columns else None
 
-        # Exclude IDs from recommended target
+        # Exclude IDs and prioritize meaningful business metrics (sales, revenue, total amount, quantity, price)
         recommended_target: Optional[str] = None
+        priority_keywords = ["revenue", "sales", "total", "amount", "quantity", "price", "profit", "cost", "demand", "volume"]
+
+        candidate_targets = []
         for nc in numeric_columns:
-            col_l = nc.name.lower()
-            if col_l != "id" and not col_l.endswith("_id") and nc.name != recommended_date:
-                recommended_target = nc.name
-                break
-        if not recommended_target and numeric_columns:
+            if nc.name != recommended_date and not column_classifier.is_identifier(nc.name, df[nc.name]):
+                candidate_targets.append(nc.name)
+
+        if candidate_targets:
+            for cand in candidate_targets:
+                cand_lower = cand.lower()
+                if any(kw in cand_lower for kw in priority_keywords):
+                    recommended_target = cand
+                    break
+            if not recommended_target:
+                recommended_target = candidate_targets[0]
+        elif numeric_columns:
             recommended_target = numeric_columns[0].name
 
         return ForecastingColumnsResponse(
@@ -184,6 +197,12 @@ class ForecastingService:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Target column '{target_column}' is not numeric and cannot be used for time series forecasting.",
+            )
+
+        if column_classifier.is_identifier(target_column, df[target_column]):
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=f"Target column '{target_column}' is an identifier/ID column and cannot be used for time series forecasting.",
             )
 
         # Parse date column

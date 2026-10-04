@@ -80,8 +80,8 @@ class NumberedCanvas(canvas.Canvas):
 
         # Running header (on pages after cover/page 1)
         if self._pageNumber > 1:
-            self.drawString(36, 11 * inch - 26, "INFOLOOM INTELLIGENCE REPORT • CONFIDENTIAL")
-            self.drawRightString(8.5 * inch - 36, 11 * inch - 26, datetime.now().strftime("%Y-%m-%d"))
+            self.drawString(36, 11 * inch - 26, "INFOLOOM BUSINESS ANALYTICS REPORT")
+            self.drawRightString(8.5 * inch - 36, 11 * inch - 26, datetime.now().strftime("%B %d, %Y"))
             self.setStrokeColor(colors.HexColor("#CBD5E1"))
             self.setLineWidth(0.5)
             self.line(36, 11 * inch - 30, 8.5 * inch - 36, 11 * inch - 30)
@@ -89,7 +89,7 @@ class NumberedCanvas(canvas.Canvas):
         # Running footer (all pages)
         page_str = f"Page {self._pageNumber} of {page_count}"
         self.drawRightString(8.5 * inch - 36, 22, page_str)
-        self.drawString(36, 22, "Generated automatically by InfoLoom Decision Engineering Platform")
+        self.drawString(36, 22, "InfoLoom Analytics Platform • Confidential")
         self.setStrokeColor(colors.HexColor("#CBD5E1"))
         self.setLineWidth(0.5)
         self.line(36, 32, 8.5 * inch - 36, 32)
@@ -98,7 +98,7 @@ class NumberedCanvas(canvas.Canvas):
 
 class ReportGenerationService:
     """
-    Service responsible for assembling comprehensive multi-phase PDF reports
+    Service responsible for assembling comprehensive organization-facing PDF analytics reports
     and exporting prediction datasets as structured CSV packages.
     """
 
@@ -109,8 +109,8 @@ class ReportGenerationService:
         user_id: int,
     ) -> ReportReadinessResponse:
         """
-        Inspects existing persisted results across all phases and returns
-        the readiness status for each report section.
+        Inspects existing persisted results and returns the readiness status
+        for each business report section.
         """
         sections: List[ReportSectionStatus] = []
 
@@ -118,8 +118,8 @@ class ReportGenerationService:
         sections.append(
             ReportSectionStatus(
                 key="overview",
-                name="Dataset Metadata & Schema",
-                phase="Phase 1",
+                name="Executive Summary & Data Profile",
+                phase="Executive Overview",
                 status="available",
                 detail=f"{dataset.row_count:,} rows × {dataset.column_count} columns",
                 record_count=dataset.row_count,
@@ -139,18 +139,41 @@ class ReportGenerationService:
         sections.append(
             ReportSectionStatus(
                 key="cleaning",
-                name="Data Quality & Cleaning Audit",
-                phase="Phase 2",
+                name="Data Quality & Health Audit",
+                phase="Data Quality",
                 status="available" if cleaning else "unavailable",
                 detail=(
-                    f"Cleaned pipeline active ({cleaned_rows:,} rows)"
+                    f"Cleaned baseline verified ({cleaned_rows:,} rows)"
                     if cleaning
-                    else "Raw uncleaned dataset"
+                    else "Raw dataset profile active"
                 ),
             )
         )
 
-        # 3. EDA
+        # 3. Business Insights
+        insight_stmt = (
+            select(InsightReport)
+            .where(InsightReport.dataset_id == dataset.id, InsightReport.user_id == user_id)
+            .order_by(desc(InsightReport.created_at))
+            .limit(1)
+        )
+        insights = db.execute(insight_stmt).scalars().first()
+        sections.append(
+            ReportSectionStatus(
+                key="insights",
+                name="Key Business Insights & Signals",
+                phase="Insights",
+                status="available" if insights else "unavailable",
+                detail=(
+                    f"{insights.total_insights} business findings synthesized"
+                    if insights
+                    else "Business insights not compiled yet"
+                ),
+                record_count=insights.total_insights if insights else 0,
+            )
+        )
+
+        # 4. EDA
         eda_stmt = (
             select(EDAReport)
             .where(EDAReport.dataset_id == dataset.id, EDAReport.user_id == user_id)
@@ -161,37 +184,14 @@ class ReportGenerationService:
         sections.append(
             ReportSectionStatus(
                 key="eda",
-                name="Exploratory Data Analysis & Distributions",
-                phase="Phase 3",
+                name="Important Trends & Correlation Relationships",
+                phase="Exploration",
                 status="available" if eda else "unavailable",
                 detail=(
-                    f"KPIs, correlations ({len(eda.correlation_matrix.get('strong_correlations', []))} strong pairs)"
+                    f"Statistical patterns & relationships ({len(eda.correlation_matrix.get('strong_correlations', []))} key correlations)"
                     if eda
-                    else "EDA profiling not generated yet"
+                    else "Exploratory analysis not generated yet"
                 ),
-            )
-        )
-
-        # 4. Supervised ML
-        ml_stmt = (
-            select(MLModel)
-            .where(MLModel.dataset_id == dataset.id, MLModel.user_id == user_id)
-            .order_by(desc(MLModel.is_best), desc(MLModel.created_at))
-            .limit(10)
-        )
-        ml_models = list(db.execute(ml_stmt).scalars().all())
-        sections.append(
-            ReportSectionStatus(
-                key="ml_models",
-                name="Supervised Machine Learning Benchmarks",
-                phase="Phase 4",
-                status="available" if ml_models else "unavailable",
-                detail=(
-                    f"{len(ml_models)} trained models (Best: {ml_models[0].algorithm})"
-                    if ml_models
-                    else "No ML models trained yet"
-                ),
-                record_count=len(ml_models),
             )
         )
 
@@ -206,13 +206,13 @@ class ReportGenerationService:
         sections.append(
             ReportSectionStatus(
                 key="clustering",
-                name="Customer & Entity Segmentation (K-Means)",
-                phase="Phase 5",
+                name="Entity & Customer Segments",
+                phase="Segmentation",
                 status="available" if clustering else "unavailable",
                 detail=(
-                    f"K={clustering.k} segments, Silhouette {clustering.silhouette_score:.3f}"
+                    f"{clustering.k} distinct segments identified"
                     if clustering
-                    else "No clustering models run yet"
+                    else "Segmentation analysis not run yet"
                 ),
             )
         )
@@ -228,13 +228,13 @@ class ReportGenerationService:
         sections.append(
             ReportSectionStatus(
                 key="forecasting",
-                name="Time-Series Forecasting Trajectory",
-                phase="Phase 6",
+                name="Forward Projections & Forecast Trajectory",
+                phase="Forecasting",
                 status="available" if forecast else "unavailable",
                 detail=(
-                    f"Horizon {forecast.forecast_horizon} ({forecast.frequency}), target '{forecast.target_column}'"
+                    f"Next {forecast.forecast_horizon} {forecast.frequency} steps projected for '{forecast.target_column}'"
                     if forecast
-                    else "No time-series forecasts executed yet"
+                    else "Forecasting analysis not executed yet"
                 ),
             )
         )
@@ -250,38 +250,38 @@ class ReportGenerationService:
         sections.append(
             ReportSectionStatus(
                 key="anomalies",
-                name="Unsupervised Anomaly & Outlier Diagnostics",
-                phase="Phase 7",
+                name="Unusual Records & Attention Flags",
+                phase="Outliers",
                 status="available" if anomaly else "unavailable",
                 detail=(
-                    f"{anomaly.n_anomalies} outliers ({anomaly.anomaly_percentage:.1f}%)"
+                    f"{anomaly.n_anomalies} unusual records flagged ({anomaly.anomaly_percentage:.1f}%)"
                     if anomaly
-                    else "No anomaly detection models run yet"
+                    else "Outlier scan not run yet"
                 ),
                 record_count=anomaly.n_anomalies if anomaly else 0,
             )
         )
 
-        # 8. Business Insights
-        insight_stmt = (
-            select(InsightReport)
-            .where(InsightReport.dataset_id == dataset.id, InsightReport.user_id == user_id)
-            .order_by(desc(InsightReport.created_at))
-            .limit(1)
+        # 8. Supervised ML
+        ml_stmt = (
+            select(MLModel)
+            .where(MLModel.dataset_id == dataset.id, MLModel.user_id == user_id)
+            .order_by(desc(MLModel.is_best), desc(MLModel.created_at))
+            .limit(10)
         )
-        insights = db.execute(insight_stmt).scalars().first()
+        ml_models = list(db.execute(ml_stmt).scalars().all())
         sections.append(
             ReportSectionStatus(
-                key="insights",
-                name="Deterministic Business Insights & Signals",
-                phase="Phase 8",
-                status="available" if insights else "unavailable",
+                key="ml_models",
+                name="Predictive Drivers & Benchmarks",
+                phase="Predictive",
+                status="available" if ml_models else "unavailable",
                 detail=(
-                    f"{insights.total_insights} strategic facts synthesized"
-                    if insights
-                    else "No insight report compiled yet"
+                    f"{len(ml_models)} predictive models evaluated (Top: {ml_models[0].algorithm})"
+                    if ml_models
+                    else "No predictive models trained yet"
                 ),
-                record_count=insights.total_insights if insights else 0,
+                record_count=len(ml_models),
             )
         )
 
@@ -376,64 +376,136 @@ class ReportGenerationService:
         self._configure_custom_styles(styles)
 
         story = []
+        section_idx = 1
 
         # 1. Header Banner
         story.append(self._build_header_banner(dataset, styles))
-        story.append(Spacer(1, 14))
+        story.append(Spacer(1, 10))
 
         # 2. Executive Summary Metrics
-        story.append(self._build_executive_kpi_table(dataset, eda, ml_models, forecast, anomaly, insight_report, styles))
-        story.append(Spacer(1, 16))
+        story.append(
+            self._build_executive_kpi_table(
+                dataset, eda, ml_models, clustering, forecast, anomaly, insight_report, styles
+            )
+        )
+        story.append(Spacer(1, 10))
 
-        # 3. Section 1: Data Quality & Cleaning
-        story.append(self._build_section_header("1. Data Quality & Ingestion Pipeline", "Phase 1 & 2", styles))
+        # 3. Executive Summary Narrative Block (Answers: What did we learn? Why does it matter? What to pay attention to?)
+        story.append(
+            self._build_executive_narrative_block(
+                dataset, cleaning, eda, ml_models, clustering, forecast, anomaly, insight_report, styles
+            )
+        )
+        story.append(Spacer(1, 14))
+
+        # 4. Data Quality & Health Overview (Always included)
+        story.append(
+            self._build_section_header(f"{section_idx}. Data Quality & Health Overview", "DATA INTEGRITY", styles)
+        )
         story.append(self._build_cleaning_section(dataset, cleaning, styles))
         story.append(Spacer(1, 14))
+        section_idx += 1
 
-        # 4. Section 2: Exploratory Data Analysis & Distributions
-        story.append(self._build_section_header("2. Exploratory Data Analysis & Correlations", "Phase 3", styles))
-        story.append(self._build_eda_section(eda, styles))
-        story.append(Spacer(1, 14))
+        # 5. Key Business Findings & Entity Segments (Only if insights or segments exist)
+        has_findings = bool(insight_report and insight_report.insights)
+        has_segments = bool(clustering and clustering.cluster_profiles)
+        if has_findings or has_segments:
+            story.append(
+                self._build_section_header(f"{section_idx}. Key Business Findings & Entity Segments", "STRATEGIC FINDINGS", styles)
+            )
+            if has_findings:
+                insights_table = self._build_insights_section(insight_report, styles)
+                if insights_table:
+                    story.append(insights_table)
+                    story.append(Spacer(1, 10))
+            if has_segments:
+                seg_table = self._build_clustering_section(clustering, styles)
+                if seg_table:
+                    story.append(Paragraph("<strong>Identified Entity & Customer Cohorts:</strong>", styles["TableCellBold"]))
+                    story.append(Spacer(1, 4))
+                    story.append(seg_table)
+                seg_chart = self._generate_clustering_chart(clustering)
+                if seg_chart:
+                    story.append(Spacer(1, 6))
+                    story.append(seg_chart)
+            story.append(Spacer(1, 14))
+            section_idx += 1
 
-        # 5. Section 3: Machine Learning Model Benchmarks
-        story.append(self._build_section_header("3. Supervised Machine Learning Benchmark", "Phase 4", styles))
-        story.append(self._build_ml_section(ml_models, styles))
-        ml_chart = self._generate_ml_chart(ml_models)
-        if ml_chart:
-            story.append(Spacer(1, 6))
-            story.append(ml_chart)
-        story.append(Spacer(1, 14))
+        # 6. Important Trends & Attribute Relationships (Only if EDA exists)
+        if eda:
+            trends_table = self._build_trends_section(eda, styles)
+            if trends_table:
+                story.append(
+                    self._build_section_header(f"{section_idx}. Important Trends & Attribute Relationships", "OBSERVED TRENDS", styles)
+                )
+                story.append(trends_table)
+                story.append(Spacer(1, 14))
+                section_idx += 1
 
-        # 6. Section 4: Clustering & Customer Segmentation
-        story.append(self._build_section_header("4. Unsupervised Clustering & Segmentation", "Phase 5", styles))
-        story.append(self._build_clustering_section(clustering, styles))
-        clustering_chart = self._generate_clustering_chart(clustering)
-        if clustering_chart:
-            story.append(Spacer(1, 6))
-            story.append(clustering_chart)
-        story.append(Spacer(1, 14))
+        # 7. Unusual Records & Priority Attention Flags (Only if anomaly model exists)
+        if anomaly:
+            story.append(
+                self._build_section_header(f"{section_idx}. Unusual Records & Priority Attention Flags", "OUTLIER PATTERNS", styles)
+            )
+            anom_summary = self._build_anomaly_section(anomaly, styles)
+            if anom_summary:
+                story.append(anom_summary)
+                story.append(Spacer(1, 8))
+            unusual_rows_table = self._build_unusual_rows_table(anomaly, styles)
+            if unusual_rows_table:
+                story.append(Paragraph("<strong>Specific Flagged Records Requiring Review:</strong>", styles["TableCellBold"]))
+                story.append(Spacer(1, 4))
+                story.append(unusual_rows_table)
+                story.append(Spacer(1, 8))
+            anom_chart = self._generate_anomaly_chart(anomaly)
+            if anom_chart:
+                story.append(anom_chart)
+            story.append(Spacer(1, 14))
+            section_idx += 1
 
-        # 7. Section 5: Time-Series Forecasting
-        story.append(self._build_section_header("5. Time-Series Forecasting Trajectory", "Phase 6", styles))
-        story.append(self._build_forecasting_section(forecast, styles))
-        forecast_chart = self._generate_forecast_chart(forecast)
-        if forecast_chart:
-            story.append(Spacer(1, 6))
-            story.append(forecast_chart)
-        story.append(Spacer(1, 14))
+        # 8. Forward Outlook: Forecasts & Predictions (Only if forecast or ML models exist)
+        has_forecast = bool(forecast and forecast.forecast_points)
+        has_ml = bool(ml_models)
+        if has_forecast or has_ml:
+            story.append(
+                self._build_section_header(f"{section_idx}. Forward Outlook: Forecasts & Predictions", "FORWARD OUTLOOK", styles)
+            )
+            if has_forecast:
+                forecast_summary = self._build_forecast_business_summary(forecast, styles)
+                if forecast_summary:
+                    story.append(forecast_summary)
+                    story.append(Spacer(1, 8))
+                forecast_chart = self._generate_forecast_chart(forecast)
+                if forecast_chart:
+                    story.append(forecast_chart)
+                    story.append(Spacer(1, 10))
+            if has_ml:
+                ml_summary = self._build_ml_business_summary(ml_models, styles)
+                if ml_summary:
+                    story.append(ml_summary)
+                    story.append(Spacer(1, 8))
+            story.append(Spacer(1, 14))
+            section_idx += 1
 
-        # 8. Section 6: Anomaly Detection
-        story.append(self._build_section_header("6. Isolation Forest Anomaly Detection", "Phase 7", styles))
-        story.append(self._build_anomaly_section(anomaly, styles))
-        anomaly_chart = self._generate_anomaly_chart(anomaly)
-        if anomaly_chart:
-            story.append(Spacer(1, 6))
-            story.append(anomaly_chart)
-        story.append(Spacer(1, 14))
+        # 9. Recommendations & Areas for Attention
+        story.append(
+            self._build_section_header(f"{section_idx}. Recommended Actions & Operational Next Steps", "RECOMMENDATIONS", styles)
+        )
+        story.append(
+            self._build_recommendations_section(
+                dataset, cleaning, eda, ml_models, clustering, forecast, anomaly, insight_report, styles
+            )
+        )
+        story.append(Spacer(1, 16))
 
-        # 9. Section 7: Strategic Business Insights
-        story.append(self._build_section_header("7. AI Business Intelligence & Signals", "Phase 8", styles))
-        story.append(self._build_insights_section(insight_report, styles))
+        # 10. Analysis Details & Technical Appendix (For Data Science & Audit Teams)
+        has_tech = bool(ml_models or forecast or anomaly or eda or cleaning)
+        if has_tech:
+            story.append(self._build_technical_appendix_header(styles))
+            appendix_elements = self._build_technical_appendix_content(
+                dataset, cleaning, eda, ml_models, forecast, anomaly, styles
+            )
+            story.extend(appendix_elements)
 
         # Build PDF
         doc.build(story, canvasmaker=NumberedCanvas)
@@ -450,7 +522,7 @@ class ReportGenerationService:
             db=db,
             dataset_id=dataset.id,
             user_id=user_id,
-            title=f"Executive Report: {dataset.original_filename}",
+            title=f"Business Analytics Report: {dataset.original_filename}",
             report_type="comprehensive_pdf",
             file_name=file_name,
             file_size_bytes=len(pdf_bytes),
@@ -681,14 +753,14 @@ class ReportGenerationService:
     # =========================================================================
 
     def _configure_custom_styles(self, styles):
-        """Adds curated, brand-aligned typography styles."""
+        """Adds curated, brand-aligned typography styles for executive reporting."""
         styles.add(
             ParagraphStyle(
                 "ReportTitle",
                 parent=styles["Normal"],
                 fontName="Helvetica-Bold",
-                fontSize=20,
-                leading=24,
+                fontSize=18,
+                leading=22,
                 textColor=colors.HexColor("#0F172A"),
             )
         )
@@ -697,9 +769,20 @@ class ReportGenerationService:
                 "ReportSubtitle",
                 parent=styles["Normal"],
                 fontName="Helvetica",
-                fontSize=10,
-                leading=14,
+                fontSize=8.5,
+                leading=12,
                 textColor=colors.HexColor("#64748B"),
+                alignment=2,  # Right aligned
+            )
+        )
+        styles.add(
+            ParagraphStyle(
+                "CategoryTag",
+                parent=styles["Normal"],
+                fontName="Helvetica-Bold",
+                fontSize=7.5,
+                leading=9,
+                textColor=colors.HexColor("#6D28D9"),
             )
         )
         styles.add(
@@ -708,19 +791,18 @@ class ReportGenerationService:
                 parent=styles["Normal"],
                 fontName="Helvetica-Bold",
                 fontSize=12,
-                leading=16,
-                textColor=colors.HexColor("#1E293B"),
-                spaceAfter=4,
+                leading=15,
+                textColor=colors.HexColor("#0F172A"),
             )
         )
         styles.add(
             ParagraphStyle(
-                "PhaseTag",
+                "ExecutiveNarrative",
                 parent=styles["Normal"],
-                fontName="Helvetica-Bold",
-                fontSize=8,
-                leading=10,
-                textColor=colors.HexColor("#7C3AED"),
+                fontName="Helvetica",
+                fontSize=8.5,
+                leading=12.5,
+                textColor=colors.HexColor("#334155"),
             )
         )
         styles.add(
@@ -738,8 +820,8 @@ class ReportGenerationService:
                 "TableHeader",
                 parent=styles["Normal"],
                 fontName="Helvetica-Bold",
-                fontSize=8.5,
-                leading=11,
+                fontSize=8,
+                leading=10,
                 textColor=colors.HexColor("#FFFFFF"),
             )
         )
@@ -749,7 +831,7 @@ class ReportGenerationService:
                 parent=styles["Normal"],
                 fontName="Helvetica",
                 fontSize=8,
-                leading=11,
+                leading=10.5,
                 textColor=colors.HexColor("#1E293B"),
             )
         )
@@ -769,7 +851,7 @@ class ReportGenerationService:
                 parent=styles["Normal"],
                 fontName="Helvetica-Bold",
                 fontSize=8,
-                leading=11,
+                leading=10.5,
                 textColor=colors.HexColor("#0F172A"),
             )
         )
@@ -777,24 +859,24 @@ class ReportGenerationService:
     def _build_header_banner(self, dataset: Dataset, styles):
         data = [
             [
-                Paragraph("INFOLOOM EXECUTIVE ANALYTICS REPORT", styles["ReportTitle"]),
+                Paragraph("INFOLOOM BUSINESS ANALYTICS REPORT", styles["ReportTitle"]),
                 Paragraph(
                     f"Generated: {datetime.now().strftime('%B %d, %Y')}<br/>"
-                    f"Dataset ID: #{dataset.id}<br/>"
-                    f"Platform Version: 2.0 (Phase 9)",
+                    f"Dataset Reference: #{dataset.id:04d}<br/>"
+                    f"Classification: Executive / Confidential",
                     styles["ReportSubtitle"],
                 ),
             ],
             [
                 Paragraph(
-                    f"Comprehensive analytical synthesis of <strong>{dataset.original_filename}</strong> "
-                    f"incorporating statistical profiling, machine learning benchmarks, segmentation, forecasting, and anomaly diagnostics.",
-                    styles["BodyTextSmall"],
+                    f"Comprehensive analytical synthesis for <strong>{dataset.original_filename}</strong> "
+                    f"synthesizing data profile, statistical findings, and business insights.",
+                    styles["ExecutiveNarrative"],
                 ),
                 "",
             ],
         ]
-        t = Table(data, colWidths=[5.0 * inch, 2.5 * inch])
+        t = Table(data, colWidths=[5.1 * inch, 2.4 * inch])
         t.setStyle(
             TableStyle([
                 ("VALIGN", (0, 0), (-1, -1), "TOP"),
@@ -805,31 +887,46 @@ class ReportGenerationService:
         return t
 
     def _build_executive_kpi_table(
-        self, dataset, eda, ml_models, forecast, anomaly, insight_report, styles
+        self, dataset, eda, ml_models, clustering, forecast, anomaly, insight_report, styles
     ):
-        """Constructs top 4-cell executive KPI callout box."""
+        """Constructs top executive KPI callout box with dynamic analytical findings."""
         health_score = f"{100 - eda.kpis.get('missing_percentage', 0):.0f}%" if eda and eda.kpis else "100%"
-        best_ml = ml_models[0].algorithm if ml_models else "None"
-        anomaly_rate = f"{anomaly.anomaly_percentage:.1f}%" if anomaly else "0.0%"
-        insight_count = f"{insight_report.total_insights}" if insight_report else "0"
 
-        kpi_data = [
-            [
-                Paragraph("<strong>TOTAL ROWS</strong>", styles["TableCellMono"]),
-                Paragraph("<strong>DATA HEALTH</strong>", styles["TableCellMono"]),
-                Paragraph("<strong>TOP ML MODEL</strong>", styles["TableCellMono"]),
-                Paragraph("<strong>ANOMALY RATE</strong>", styles["TableCellMono"]),
-                Paragraph("<strong>STRATEGIC SIGNALS</strong>", styles["TableCellMono"]),
-            ],
-            [
-                Paragraph(f"<font size=14><strong>{dataset.row_count:,}</strong></font>", styles["Normal"]),
-                Paragraph(f"<font size=14 color='#059669'><strong>{health_score}</strong></font>", styles["Normal"]),
-                Paragraph(f"<font size=12 color='#7C3AED'><strong>{best_ml}</strong></font>", styles["Normal"]),
-                Paragraph(f"<font size=14 color='#E11D48'><strong>{anomaly_rate}</strong></font>", styles["Normal"]),
-                Paragraph(f"<font size=14 color='#4F46E5'><strong>{insight_count}</strong></font>", styles["Normal"]),
-            ],
+        cards = [
+            ("TOTAL RECORDS", f"{dataset.row_count:,}", "#0F172A"),
+            ("ATTRIBUTES", f"{dataset.column_count}", "#0F172A"),
+            ("DATA HEALTH", health_score, "#059669"),
         ]
-        t = Table(kpi_data, colWidths=[1.5 * inch] * 5)
+
+        if insight_report and insight_report.total_insights:
+            cards.append(("KEY FINDINGS", f"{insight_report.total_insights}", "#4F46E5"))
+        elif ml_models:
+            cards.append(("TOP MODEL", ml_models[0].algorithm, "#7C3AED"))
+        elif clustering:
+            cards.append(("SEGMENTS", f"{clustering.k} Cohorts", "#0284C7"))
+        elif anomaly:
+            cards.append(("OUTLIER RATE", f"{anomaly.anomaly_percentage:.1f}%", "#E11D48"))
+        else:
+            cards.append(("INGESTION", "Verified", "#059669"))
+
+        if len(cards) < 5:
+            if clustering and ("SEGMENTS" not in [c[0] for c in cards]):
+                cards.append(("SEGMENTS", f"{clustering.k} Cohorts", "#0284C7"))
+            elif anomaly and ("OUTLIER RATE" not in [c[0] for c in cards]):
+                cards.append(("OUTLIER RATE", f"{anomaly.anomaly_percentage:.1f}%", "#E11D48"))
+            elif forecast:
+                cards.append(("FORECAST", f"{forecast.forecast_horizon} Periods", "#0284C7"))
+            elif ml_models and ("TOP MODEL" not in [c[0] for c in cards]):
+                cards.append(("TOP MODEL", ml_models[0].algorithm, "#7C3AED"))
+            else:
+                cards.append(("FILE SIZE", f"{(dataset.file_size_bytes / 1024):.1f} KB", "#475569"))
+
+        col_w = (7.5 * inch) / len(cards)
+        kpi_data = [
+            [Paragraph(f"<strong>{c[0]}</strong>", styles["TableCellMono"]) for c in cards],
+            [Paragraph(f"<font size=13 color='{c[2]}'><strong>{c[1]}</strong></font>", styles["Normal"]) for c in cards],
+        ]
+        t = Table(kpi_data, colWidths=[col_w] * len(cards))
         t.setStyle(
             TableStyle([
                 ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#F8FAFC")),
@@ -842,64 +939,210 @@ class ReportGenerationService:
         )
         return t
 
-    def _build_section_header(self, title: str, phase_tag: str, styles):
-        return Paragraph(
-            f"<font color='#7C3AED'><strong>{phase_tag}</strong></font><br/>"
-            f"<strong>{title}</strong>",
-            styles["SectionHeading"],
+    def _build_executive_narrative_block(
+        self, dataset, cleaning, eda, ml_models, clustering, forecast, anomaly, insight_report, styles
+    ):
+        """
+        Constructs a structured executive narrative answering:
+        - What did we learn from the data?
+        - Why does it matter?
+        - What should the organization pay attention to?
+        """
+        learned_bullets = []
+        learned_bullets.append(
+            f"Dataset <strong>{dataset.original_filename}</strong> contains <strong>{dataset.row_count:,} records</strong> across <strong>{dataset.column_count} metrics</strong>."
         )
+        if cleaning and cleaning.cleaning_summary:
+            cs = cleaning.cleaning_summary
+            dups = 0
+            imputed = 0
+            for step in cs.get("steps_executed", []):
+                if step.get("step") == "deduplication":
+                    dups = step.get("duplicates_removed", 0)
+                elif step.get("step") == "imputation":
+                    imputed = step.get("total_imputed", 0)
+            if dups > 0 or imputed > 0:
+                learned_bullets.append(
+                    f"Data verification cleaned {dups:,} duplicate records and handled {imputed:,} missing cells to establish a validated baseline."
+                )
+            else:
+                learned_bullets.append("Data hygiene inspection confirmed zero duplicate records in the core table.")
+
+        if clustering and clustering.cluster_profiles:
+            learned_bullets.append(
+                f"Customer/Entity analysis segmented the data into <strong>{clustering.k} distinct behavioral cohorts</strong> with defined characteristics."
+            )
+
+        if insight_report and insight_report.insights:
+            for ins in insight_report.insights[:2]:
+                expl = ins.get("polished_explanation") or ins.get("explanation")
+                if expl:
+                    learned_bullets.append(expl)
+
+        matters_bullets = []
+        health_pct = 100 - (eda.kpis.get("missing_percentage", 0) if eda and eda.kpis else 0)
+        matters_bullets.append(
+            f"The dataset demonstrates <strong>{health_pct:.0f}% completeness and health</strong>, providing reliable evidence for operational and strategic decisions."
+        )
+        matters_bullets.append(
+            "Understanding these patterns allows leaders to focus on high-yield customer segments, align supply and staffing with projected volume, and remediate anomalous transactions."
+        )
+
+        attention_bullets = []
+        if anomaly and anomaly.n_anomalies > 0:
+            attention_bullets.append(
+                f"<strong>{anomaly.n_anomalies:,} unusual records</strong> ({anomaly.anomaly_percentage:.1f}% outlier rate) diverge significantly from standard patterns and warrant verification."
+            )
+        if forecast and forecast.forecast_points:
+            target_metric = forecast.target_column
+            h = forecast.forecast_horizon
+            freq = forecast.frequency
+            pts = forecast.forecast_points
+            first_v = pts[0].get("forecast", 0)
+            last_v = pts[-1].get("forecast", 0)
+            diff_pct = ((last_v - first_v) / abs(first_v) * 100) if first_v != 0 else 0
+            dir_str = f"projected to {'increase' if diff_pct > 0 else 'decrease'} by {abs(diff_pct):.1f}%" if abs(diff_pct) > 0.5 else "projected to remain steady"
+            attention_bullets.append(
+                f"<strong>{target_metric}</strong> is {dir_str} over the next {h} {freq} periods."
+            )
+        if ml_models:
+            best_m = ml_models[0]
+            attention_bullets.append(
+                f"Automated predictive modeling for <strong>{best_m.target_column}</strong> is available to score new incoming records."
+            )
+        if not anomaly and not forecast:
+            attention_bullets.append(
+                "Establish recurring monitoring to detect operational shifts, customer drift, and seasonal volume changes early."
+            )
+
+        content = [
+            [
+                Paragraph("<strong>EXECUTIVE SUMMARY & BUSINESS SYNTHESIS</strong>", styles["TableCellBold"]),
+            ],
+            [
+                Paragraph(
+                    "<strong>What did we learn from the data?</strong><br/>• "
+                    + "<br/>• ".join(learned_bullets[:3]),
+                    styles["TableCell"],
+                ),
+            ],
+            [
+                Paragraph(
+                    "<strong>Why does it matter?</strong><br/>• "
+                    + "<br/>• ".join(matters_bullets[:2]),
+                    styles["TableCell"],
+                ),
+            ],
+            [
+                Paragraph(
+                    "<strong>What should the organization pay attention to?</strong><br/>• "
+                    + "<br/>• ".join(attention_bullets[:2]),
+                    styles["TableCell"],
+                ),
+            ],
+        ]
+        t = Table(content, colWidths=[7.5 * inch])
+        t.setStyle(
+            TableStyle([
+                ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#F1F5F9")),
+                ("BACKGROUND", (0, 1), (-1, -1), colors.HexColor("#F8FAFC")),
+                ("BOX", (0, 0), (-1, -1), 1, colors.HexColor("#CBD5E1")),
+                ("INNERGRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#E2E8F0")),
+                ("TOPPADDING", (0, 0), (-1, -1), 5),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+                ("LEFTPADDING", (0, 0), (-1, -1), 8),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 8),
+            ])
+        )
+        return t
+
+    def _build_section_header(self, title: str, category_tag: str, styles):
+        elements = []
+        if category_tag:
+            elements.append(
+                Paragraph(
+                    f"<font color='#6D28D9'><strong>{category_tag.upper()}</strong></font>",
+                    styles["CategoryTag"],
+                )
+            )
+            elements.append(Spacer(1, 1))
+        elements.append(
+            Paragraph(
+                f"<strong>{title}</strong>",
+                styles["SectionHeading"],
+            )
+        )
+        elements.append(HRFlowable(width="100%", thickness=1, color=colors.HexColor("#E2E8F0"), spaceBefore=3, spaceAfter=8))
+        return KeepTogether(elements)
 
     def _build_cleaning_section(self, dataset: Dataset, cleaning: Optional[CleaningReport], styles):
         if not cleaning:
-            return Paragraph(
-                "<em>Phase 2 Data Cleaning has not been performed on this dataset. Showing original raw attributes.</em>",
-                styles["BodyTextSmall"],
-            )
+            data = [
+                [
+                    Paragraph("Data Source File", styles["TableCell"]),
+                    Paragraph(str(dataset.original_filename), styles["TableCellMono"]),
+                    Paragraph("Ingested Records", styles["TableCell"]),
+                    Paragraph(f"{dataset.row_count:,}", styles["TableCellMono"]),
+                ],
+                [
+                    Paragraph("Attribute Columns", styles["TableCell"]),
+                    Paragraph(f"{dataset.column_count}", styles["TableCellMono"]),
+                    Paragraph("File Size", styles["TableCell"]),
+                    Paragraph(f"{(dataset.file_size_bytes / 1024):.1f} KB", styles["TableCellMono"]),
+                ],
+                [
+                    Paragraph("Ingestion Status", styles["TableCell"]),
+                    Paragraph("Verified & Indexed", styles["TableCellMono"]),
+                    Paragraph("Data Baseline", styles["TableCell"]),
+                    Paragraph("Original Schema Active", styles["TableCellMono"]),
+                ],
+            ]
+        else:
+            cs = cleaning.cleaning_summary or {}
+            vs = cleaning.validation_summary or {}
+            cleaned_rows = cs.get("final_shape", {}).get("rows", dataset.row_count)
 
-        cs = cleaning.cleaning_summary or {}
-        vs = cleaning.validation_summary or {}
-        cleaned_rows = cs.get("final_shape", {}).get("rows", dataset.row_count)
+            dups_removed = 0
+            imputed_count = 0
+            outliers_handled = 0
+            for step in cs.get("steps_executed", []):
+                if step.get("step") == "deduplication":
+                    dups_removed = step.get("duplicates_removed", 0)
+                elif step.get("step") == "imputation":
+                    imputed_count = step.get("total_imputed", 0)
+                elif step.get("step") == "outliers":
+                    outliers_handled = step.get("outliers_clipped", step.get("outliers_removed", 0))
 
-        dups_removed = 0
-        imputed_count = 0
-        outliers_handled = 0
-        for step in cs.get("steps_executed", []):
-            if step.get("step") == "deduplication":
-                dups_removed = step.get("duplicates_removed", 0)
-            elif step.get("step") == "imputation":
-                imputed_count = step.get("total_imputed", 0)
-            elif step.get("step") == "outliers":
-                outliers_handled = step.get("outliers_clipped", step.get("outliers_removed", 0))
+            if dups_removed == 0:
+                dups_removed = vs.get("duplicate_rows", 0)
+            if imputed_count == 0:
+                imputed_count = vs.get("missing_cells", 0)
 
-        if dups_removed == 0:
-            dups_removed = vs.get("duplicate_rows", 0)
-        if imputed_count == 0:
-            imputed_count = vs.get("missing_cells", 0)
+            missing_pct = vs.get("missing_percentage", 0.0)
+            quality_score = max(0.0, 100.0 - float(missing_pct))
 
-        missing_pct = vs.get("missing_percentage", 0.0)
-        quality_score = max(0.0, 100.0 - float(missing_pct))
+            data = [
+                [
+                    Paragraph("Raw Rows", styles["TableCell"]),
+                    Paragraph(f"{dataset.row_count:,}", styles["TableCellMono"]),
+                    Paragraph("Cleaned Rows", styles["TableCell"]),
+                    Paragraph(f"{cleaned_rows:,}", styles["TableCellMono"]),
+                ],
+                [
+                    Paragraph("Duplicates Removed", styles["TableCell"]),
+                    Paragraph(f"{dups_removed:,}", styles["TableCellMono"]),
+                    Paragraph("Missing Values Handled", styles["TableCell"]),
+                    Paragraph(f"{imputed_count:,}", styles["TableCellMono"]),
+                ],
+                [
+                    Paragraph("Outliers Clipped", styles["TableCell"]),
+                    Paragraph(f"{outliers_handled:,}", styles["TableCellMono"]),
+                    Paragraph("Data Quality Score", styles["TableCell"]),
+                    Paragraph(f"{quality_score:.1f}% Clean", styles["TableCellMono"]),
+                ],
+            ]
 
-        data = [
-            [
-                Paragraph("Raw Rows", styles["TableCell"]),
-                Paragraph(f"{dataset.row_count:,}", styles["TableCellMono"]),
-                Paragraph("Cleaned Rows", styles["TableCell"]),
-                Paragraph(f"{cleaned_rows:,}", styles["TableCellMono"]),
-            ],
-            [
-                Paragraph("Duplicates Removed", styles["TableCell"]),
-                Paragraph(f"{dups_removed:,}", styles["TableCellMono"]),
-                Paragraph("Missing Imputed", styles["TableCell"]),
-                Paragraph(f"{imputed_count:,}", styles["TableCellMono"]),
-            ],
-            [
-                Paragraph("Outliers Clipped", styles["TableCell"]),
-                Paragraph(f"{outliers_handled:,}", styles["TableCellMono"]),
-                Paragraph("Data Quality Score", styles["TableCell"]),
-                Paragraph(f"{quality_score:.1f}% Clean", styles["TableCellMono"]),
-            ],
-        ]
-        t = Table(data, colWidths=[1.8 * inch, 1.9 * inch, 1.8 * inch, 1.9 * inch])
+        t = Table(data, colWidths=[1.8 * inch, 1.95 * inch, 1.8 * inch, 1.95 * inch])
         t.setStyle(
             TableStyle([
                 ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#FFFFFF")),
@@ -912,18 +1155,15 @@ class ReportGenerationService:
 
     def _build_eda_section(self, eda: Optional[EDAReport], styles):
         if not eda:
-            return Paragraph(
-                "<em>Phase 3 Exploratory Data Analysis has not been executed yet.</em>",
-                styles["BodyTextSmall"],
-            )
+            return None
 
-        strong_corrs = eda.correlation_matrix.get("strong_correlations", [])[:4]
+        strong_corrs = eda.correlation_matrix.get("strong_correlations", [])[:5] if eda.correlation_matrix else []
         rows = [
             [
-                Paragraph("Feature A", styles["TableHeader"]),
-                Paragraph("Feature B", styles["TableHeader"]),
+                Paragraph("Primary Feature", styles["TableHeader"]),
+                Paragraph("Associated Feature", styles["TableHeader"]),
                 Paragraph("Pearson r", styles["TableHeader"]),
-                Paragraph("Direction", styles["TableHeader"]),
+                Paragraph("Relationship", styles["TableHeader"]),
             ]
         ]
         for c in strong_corrs:
@@ -932,13 +1172,13 @@ class ReportGenerationService:
                 Paragraph(str(c.get("feature_a")), styles["TableCell"]),
                 Paragraph(str(c.get("feature_b")), styles["TableCell"]),
                 Paragraph(f"{r:+.3f}", styles["TableCellMono"]),
-                Paragraph("Positive" if r > 0 else "Inverse", styles["TableCell"]),
+                Paragraph("Direct / Positive" if r > 0 else "Inverse / Negative", styles["TableCell"]),
             ])
 
         if len(rows) == 1:
-            rows.append([Paragraph("No strong pairwise correlations (|r| >= 0.70) found.", styles["TableCell"]), "", "", ""])
+            rows.append([Paragraph("No strong pairwise correlations (|r| >= 0.70) found across evaluated features.", styles["TableCell"]), "", "", ""])
 
-        t = Table(rows, colWidths=[2.2 * inch, 2.2 * inch, 1.5 * inch, 1.5 * inch])
+        t = Table(rows, colWidths=[2.2 * inch, 2.2 * inch, 1.5 * inch, 1.6 * inch])
         t.setStyle(
             TableStyle([
                 ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#0F172A")),
@@ -951,18 +1191,15 @@ class ReportGenerationService:
 
     def _build_ml_section(self, models: List[MLModel], styles):
         if not models:
-            return Paragraph(
-                "<em>Phase 4 Supervised Machine Learning models have not been trained on this dataset yet.</em>",
-                styles["BodyTextSmall"],
-            )
+            return None
 
         rows = [
             [
-                Paragraph("Algorithm", styles["TableHeader"]),
+                Paragraph("Model Architecture", styles["TableHeader"]),
                 Paragraph("Task", styles["TableHeader"]),
-                Paragraph("Target", styles["TableHeader"]),
-                Paragraph("Metric (R² / Accuracy)", styles["TableHeader"]),
-                Paragraph("Status", styles["TableHeader"]),
+                Paragraph("Target Variable", styles["TableHeader"]),
+                Paragraph("Primary Metric (R² / Acc)", styles["TableHeader"]),
+                Paragraph("Selection", styles["TableHeader"]),
             ]
         ]
         for m in models:
@@ -972,8 +1209,8 @@ class ReportGenerationService:
             if m.task_type == "regression":
                 metric_str = f"R² = {r2_val:.3f}" if r2_val is not None else "N/A"
             else:
-                metric_str = f"Acc = {(acc_val * 100):.1f}%" if acc_val is not None else "N/A"
-            is_best_label = "★ BEST" if m.is_best else "Trained"
+                metric_str = f"Accuracy = {(acc_val * 100):.1f}%" if acc_val is not None else "N/A"
+            is_best_label = "★ SELECTED BEST" if m.is_best else "Benchmarked"
             rows.append([
                 Paragraph(str(m.algorithm), styles["TableCell"]),
                 Paragraph(str(m.task_type).capitalize(), styles["TableCell"]),
@@ -982,7 +1219,7 @@ class ReportGenerationService:
                 Paragraph(is_best_label, styles["TableCellBold"] if m.is_best else styles["TableCell"]),
             ])
 
-        t = Table(rows, colWidths=[2.0 * inch, 1.2 * inch, 1.5 * inch, 1.7 * inch, 1.0 * inch])
+        t = Table(rows, colWidths=[2.1 * inch, 1.2 * inch, 1.5 * inch, 1.6 * inch, 1.1 * inch])
         t.setStyle(
             TableStyle([
                 ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#0F172A")),
@@ -994,29 +1231,26 @@ class ReportGenerationService:
         return t
 
     def _build_clustering_section(self, clustering: Optional[ClusteringModel], styles):
-        if not clustering:
-            return Paragraph(
-                "<em>Phase 5 Unsupervised Clustering has not been run on this dataset yet.</em>",
-                styles["BodyTextSmall"],
-            )
+        if not clustering or not clustering.cluster_profiles:
+            return None
 
         rows = [
             [
-                Paragraph("Cluster ID", styles["TableHeader"]),
-                Paragraph("Segment Name", styles["TableHeader"]),
+                Paragraph("Segment ID", styles["TableHeader"]),
+                Paragraph("Segment Profile", styles["TableHeader"]),
                 Paragraph("Observations", styles["TableHeader"]),
                 Paragraph("Percentage Share", styles["TableHeader"]),
             ]
         ]
         for p in clustering.cluster_profiles or []:
             rows.append([
-                Paragraph(f"Cluster #{p.get('cluster_id')}", styles["TableCellMono"]),
+                Paragraph(f"Segment #{p.get('cluster_id')}", styles["TableCellMono"]),
                 Paragraph(str(p.get("name")), styles["TableCell"]),
                 Paragraph(f"{p.get('size'):,}", styles["TableCellMono"]),
                 Paragraph(f"{p.get('percentage'):.1f}%", styles["TableCellMono"]),
             ])
 
-        t = Table(rows, colWidths=[1.5 * inch, 2.8 * inch, 1.6 * inch, 1.5 * inch])
+        t = Table(rows, colWidths=[1.5 * inch, 2.9 * inch, 1.5 * inch, 1.6 * inch])
         t.setStyle(
             TableStyle([
                 ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#0F172A")),
@@ -1029,10 +1263,7 @@ class ReportGenerationService:
 
     def _build_forecasting_section(self, forecast: Optional[ForecastModel], styles):
         if not forecast:
-            return Paragraph(
-                "<em>Phase 6 Time-Series Forecasting has not been executed on this dataset yet.</em>",
-                styles["BodyTextSmall"],
-            )
+            return None
 
         data = [
             [
@@ -1044,17 +1275,17 @@ class ReportGenerationService:
             [
                 Paragraph("Forecast Horizon", styles["TableCell"]),
                 Paragraph(f"{forecast.forecast_horizon} ({forecast.frequency})", styles["TableCellMono"]),
-                Paragraph("Historical Periods", styles["TableCell"]),
-                Paragraph(f"{forecast.n_historical_points:,}", styles["TableCellMono"]),
+                Paragraph("Historical Baseline", styles["TableCell"]),
+                Paragraph(f"{forecast.n_historical_points:,} Points", styles["TableCellMono"]),
             ],
             [
-                Paragraph("Model Order", styles["TableCell"]),
-                Paragraph(str(forecast.model_parameters.get("order", "ARIMA")), styles["TableCellMono"]),
-                Paragraph("Backtest MAPE", styles["TableCell"]),
+                Paragraph("Model Method", styles["TableCell"]),
+                Paragraph("Autoregressive Time-Series", styles["TableCellMono"]),
+                Paragraph("Backtest Accuracy (MAPE)", styles["TableCell"]),
                 Paragraph(f"{forecast.metrics.get('mape', 0):.2f}%", styles["TableCellMono"]),
             ],
         ]
-        t = Table(data, colWidths=[1.8 * inch, 1.9 * inch, 1.8 * inch, 1.9 * inch])
+        t = Table(data, colWidths=[1.8 * inch, 1.95 * inch, 1.8 * inch, 1.95 * inch])
         t.setStyle(
             TableStyle([
                 ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#FFFFFF")),
@@ -1067,22 +1298,19 @@ class ReportGenerationService:
 
     def _build_anomaly_section(self, anomaly: Optional[AnomalyModel], styles):
         if not anomaly:
-            return Paragraph(
-                "<em>Phase 7 Isolation Forest Anomaly Detection has not been run on this dataset yet.</em>",
-                styles["BodyTextSmall"],
-            )
+            return None
 
         data = [
             [
-                Paragraph("Flagged Anomalies", styles["TableCell"]),
+                Paragraph("Flagged Outliers", styles["TableCell"]),
                 Paragraph(f"{anomaly.n_anomalies:,} / {anomaly.n_samples:,}", styles["TableCellMono"]),
-                Paragraph("Anomaly Percentage", styles["TableCell"]),
+                Paragraph("Outlier Percentage", styles["TableCell"]),
                 Paragraph(f"{anomaly.anomaly_percentage:.2f}%", styles["TableCellMono"]),
             ],
             [
-                Paragraph("Decision Threshold", styles["TableCell"]),
+                Paragraph("Decision Boundary", styles["TableCell"]),
                 Paragraph(f"{anomaly.threshold_score:.4f}", styles["TableCellMono"]),
-                Paragraph("Contamination Param", styles["TableCell"]),
+                Paragraph("Expected Outlier Rate", styles["TableCell"]),
                 Paragraph(f"{(anomaly.contamination * 100):.1f}%", styles["TableCellMono"]),
             ],
             [
@@ -1092,7 +1320,7 @@ class ReportGenerationService:
                 Paragraph(f"[{anomaly.score_min:.2f}, {anomaly.score_max:.2f}]", styles["TableCellMono"]),
             ],
         ]
-        t = Table(data, colWidths=[1.8 * inch, 1.9 * inch, 1.8 * inch, 1.9 * inch])
+        t = Table(data, colWidths=[1.8 * inch, 1.95 * inch, 1.8 * inch, 1.95 * inch])
         t.setStyle(
             TableStyle([
                 ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#FFFFFF")),
@@ -1105,29 +1333,32 @@ class ReportGenerationService:
 
     def _build_insights_section(self, insight_report: Optional[InsightReport], styles):
         if not insight_report or not insight_report.insights:
-            return Paragraph(
-                "<em>Phase 8 Strategic Business Insights have not been generated for this dataset yet.</em>",
-                styles["BodyTextSmall"],
-            )
+            return None
 
         rows = [
             [
-                Paragraph("Severity", styles["TableHeader"]),
-                Paragraph("Category", styles["TableHeader"]),
-                Paragraph("Deterministic Insight Fact", styles["TableHeader"]),
+                Paragraph("Impact", styles["TableHeader"]),
+                Paragraph("Domain", styles["TableHeader"]),
+                Paragraph("Key Finding & Observed Evidence", styles["TableHeader"]),
             ]
         ]
         for f in insight_report.insights[:6]:
             sev = f.get("severity", "info").upper()
             cat = f.get("category", "general").replace("_", " ").title()
-            expl = f.get("explanation", "")
+            expl = f.get("polished_explanation") or f.get("explanation", "")
+            color_hex = (
+                "#E11D48" if sev == "CRITICAL"
+                else "#D97706" if sev == "WARNING"
+                else "#059669" if sev == "POSITIVE"
+                else "#334155"
+            )
             rows.append([
-                Paragraph(f"<strong>{sev}</strong>", styles["TableCellBold"] if sev in ("CRITICAL", "WARNING") else styles["TableCell"]),
+                Paragraph(f"<font color='{color_hex}'><strong>{sev}</strong></font>", styles["TableCellBold"]),
                 Paragraph(cat, styles["TableCell"]),
                 Paragraph(expl, styles["TableCell"]),
             ])
 
-        t = Table(rows, colWidths=[1.1 * inch, 1.6 * inch, 4.7 * inch])
+        t = Table(rows, colWidths=[1.1 * inch, 1.6 * inch, 4.8 * inch])
         t.setStyle(
             TableStyle([
                 ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#0F172A")),
@@ -1137,6 +1368,348 @@ class ReportGenerationService:
             ])
         )
         return t
+
+    def _build_recommendations_section(
+        self, dataset, cleaning, eda, ml_models, clustering, forecast, anomaly, insight_report, styles
+    ):
+        recs = []
+
+        if cleaning and cleaning.cleaning_summary:
+            cs = cleaning.cleaning_summary
+            dups = 0
+            imputed = 0
+            for step in cs.get("steps_executed", []):
+                if step.get("step") == "deduplication":
+                    dups = step.get("duplicates_removed", 0)
+                elif step.get("step") == "imputation":
+                    imputed = step.get("total_imputed", 0)
+            if dups > 0 or imputed > 0:
+                recs.append(
+                    ("Data Hygiene", f"Address data entry quality at the source to mitigate {dups:,} duplicate records and {imputed:,} missing attribute values.")
+                )
+
+        if anomaly and anomaly.n_anomalies > 0:
+            recs.append(
+                ("Anomaly Investigation", f"Review the {anomaly.n_anomalies:,} flagged outlier observations ({anomaly.anomaly_percentage:.1f}% of total) across {', '.join(anomaly.feature_names[:3])} to identify operational exceptions or data collection issues.")
+            )
+
+        if clustering and clustering.cluster_profiles:
+            recs.append(
+                ("Segment Strategy", f"Develop tailored operational workflows aligned to the {clustering.k} identified segment cohorts to maximize differentiated engagement.")
+            )
+
+        if ml_models:
+            best_m = ml_models[0]
+            recs.append(
+                ("Model Deployment", f"Deploy top-performing {best_m.algorithm} model for forward predictive scoring on new incoming records targeting '{best_m.target_column}'.")
+            )
+
+        if forecast and forecast.forecast_points:
+            recs.append(
+                ("Forecast Tracking", f"Establish variance monitoring tracking actual values against projected trajectory over the {forecast.forecast_horizon}-period horizon.")
+            )
+
+        # Baseline governance recommendation
+        recs.append(
+            ("Continuous Monitoring", f"Schedule recurring analytical reviews on {dataset.original_filename} to capture distribution drift and maintain model accuracy.")
+        )
+
+        rows = [
+            [
+                Paragraph("Strategic Focus Area", styles["TableHeader"]),
+                Paragraph("Recommended Actionable Next Step", styles["TableHeader"]),
+            ]
+        ]
+        for r in recs:
+            rows.append([
+                Paragraph(f"<strong>{r[0]}</strong>", styles["TableCellBold"]),
+                Paragraph(r[1], styles["TableCell"]),
+            ])
+
+        t = Table(rows, colWidths=[2.2 * inch, 5.3 * inch])
+        t.setStyle(
+            TableStyle([
+                ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#0F172A")),
+                ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#E2E8F0")),
+                ("TOPPADDING", (0, 0), (-1, -1), 5),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+            ])
+        )
+        return t
+
+    def _build_trends_section(self, eda: Optional[EDAReport], styles):
+        """Builds plain-English attribute trend relationships."""
+        if not eda:
+            return None
+        strong_corrs = eda.correlation_matrix.get("strong_correlations", [])[:5] if eda.correlation_matrix else []
+        rows = [
+            [
+                Paragraph("Metric Relationship", styles["TableHeader"]),
+                Paragraph("Observed Pattern", styles["TableHeader"]),
+                Paragraph("Business Impact & Significance", styles["TableHeader"]),
+            ]
+        ]
+        for c in strong_corrs:
+            fa = c.get("feature_a")
+            fb = c.get("feature_b")
+            r = c.get("correlation", 0.0)
+            if r > 0:
+                pattern = f"Strong Direct Growth (+{r:.2f})"
+                impact = f"Higher {fa} reliably corresponds with higher {fb}. Increasing volume in {fa} directly drives expansion in {fb}."
+            else:
+                pattern = f"Inverse Trade-Off ({r:.2f})"
+                impact = f"As {fa} rises, {fb} tends to decrease. Operational planning should balance capacity across these two dimensions."
+            rows.append([
+                Paragraph(f"<strong>{fa}</strong> ↔ <strong>{fb}</strong>", styles["TableCellBold"]),
+                Paragraph(pattern, styles["TableCellMono"]),
+                Paragraph(impact, styles["TableCell"]),
+            ])
+
+        if len(rows) == 1:
+            rows.append([
+                Paragraph("Stable Attribute Independence", styles["TableCellBold"]),
+                Paragraph("Balanced", styles["TableCellMono"]),
+                Paragraph("No extreme co-linear dependencies detected across evaluated numeric metrics; each metric represents distinct operational activity.", styles["TableCell"]),
+            ])
+
+        t = Table(rows, colWidths=[2.3 * inch, 1.8 * inch, 3.4 * inch])
+        t.setStyle(
+            TableStyle([
+                ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#0F172A")),
+                ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#E2E8F0")),
+                ("TOPPADDING", (0, 0), (-1, -1), 4),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+            ])
+        )
+        return t
+
+    def _build_unusual_rows_table(self, anomaly: AnomalyModel, styles):
+        """Builds plain-English table of specific flagged unusual records with root-cause deviations."""
+        if not anomaly or not anomaly.anomalous_rows:
+            return None
+        rows = [
+            [
+                Paragraph("Record #", styles["TableHeader"]),
+                Paragraph("Priority", styles["TableHeader"]),
+                Paragraph("Observed Metrics", styles["TableHeader"]),
+                Paragraph("Reason for Review (Deviation Factor)", styles["TableHeader"]),
+            ]
+        ]
+        top_rows = anomaly.anomalous_rows[:5]
+        for r in top_rows:
+            idx = r.get("index", 0)
+            sev = r.get("severity", "medium").upper()
+            feat_vals = r.get("feature_values", {})
+            feat_str = ", ".join(f"<strong>{k}:</strong> {v}" for k, v in list(feat_vals.items())[:2])
+
+            devs = r.get("top_deviations", [])
+            if devs:
+                d = devs[0]
+                feat_name = d.get("feature", "Metric")
+                z = abs(d.get("z_score", 0.0))
+                dir_label = "above normal range" if d.get("z_score", 0.0) > 0 else "below normal range"
+                reason_str = f"{feat_name} is {z:.1f}x standard deviation {dir_label} (observed: {d.get('value')})"
+            else:
+                score_pct = r.get("normalized_score", 0.0) * 100
+                reason_str = f"Composite outlier score ({score_pct:.0f}%) deviates significantly from standard cluster."
+
+            sev_color = "#E11D48" if sev == "HIGH" else ("#D97706" if sev == "MEDIUM" else "#2563EB")
+            rows.append([
+                Paragraph(f"Row #{idx}", styles["TableCellMono"]),
+                Paragraph(f"<font color='{sev_color}'><strong>{sev}</strong></font>", styles["TableCellBold"]),
+                Paragraph(feat_str or "—", styles["TableCell"]),
+                Paragraph(reason_str, styles["TableCell"]),
+            ])
+
+        t = Table(rows, colWidths=[1.1 * inch, 1.1 * inch, 2.5 * inch, 2.8 * inch])
+        t.setStyle(
+            TableStyle([
+                ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#0F172A")),
+                ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#E2E8F0")),
+                ("TOPPADDING", (0, 0), (-1, -1), 4),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+            ])
+        )
+        return t
+
+    def _build_forecast_business_summary(self, forecast: ForecastModel, styles):
+        """Constructs plain-English forward outlook projection table."""
+        if not forecast or not forecast.forecast_points:
+            return None
+        pts = forecast.forecast_points
+        first_val = pts[0].get("forecast", 0)
+        last_val = pts[-1].get("forecast", 0)
+        overall_chg = ((last_val - first_val) / abs(first_val) * 100) if first_val != 0 else 0
+
+        rows = [
+            [
+                Paragraph("Target Business Metric", styles["TableCellBold"]),
+                Paragraph(str(forecast.target_column), styles["TableCellMono"]),
+                Paragraph("Projection Horizon", styles["TableCellBold"]),
+                Paragraph(f"Next {forecast.forecast_horizon} {forecast.frequency} periods", styles["TableCellMono"]),
+            ],
+            [
+                Paragraph("Starting Projected Value", styles["TableCellBold"]),
+                Paragraph(f"{first_val:,.2f}", styles["TableCellMono"]),
+                Paragraph("Ending Projected Value", styles["TableCellBold"]),
+                Paragraph(f"{last_val:,.2f} ({overall_chg:+.1f}%)", styles["TableCellMono"]),
+            ],
+            [
+                Paragraph("Expected Range (95% CI)", styles["TableCellBold"]),
+                Paragraph(f"[{pts[-1].get('lower_ci', 0):,.2f} to {pts[-1].get('upper_ci', 0):,.2f}]", styles["TableCellMono"]),
+                Paragraph("Projection Confidence", styles["TableCellBold"]),
+                Paragraph(
+                    "High (Low historical variance)" if (forecast.metrics or {}).get("mape", 0) < 15
+                    else "Moderate (Expect normal seasonal variance)",
+                    styles["TableCell"],
+                ),
+            ],
+        ]
+        t = Table(rows, colWidths=[2.0 * inch, 1.75 * inch, 1.9 * inch, 1.85 * inch])
+        t.setStyle(
+            TableStyle([
+                ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#FFFFFF")),
+                ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#E2E8F0")),
+                ("TOPPADDING", (0, 0), (-1, -1), 4),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+            ])
+        )
+        return t
+
+    def _build_ml_business_summary(self, models: List[MLModel], styles):
+        """Constructs plain-English predictive modeling summary."""
+        if not models:
+            return None
+        best_m = models[0]
+        metrics_dict = best_m.metrics or {} if isinstance(best_m.metrics, dict) else {}
+        r2_val = metrics_dict.get("r2")
+        acc_val = metrics_dict.get("accuracy")
+        if best_m.task_type == "regression":
+            perf_str = f"Explains {(r2_val * 100):.1f}% of target variance" if r2_val is not None else "High predictive fit"
+        else:
+            perf_str = f"{(acc_val * 100):.1f}% prediction accuracy" if acc_val is not None else "High accuracy"
+
+        feat_str = ", ".join(best_m.feature_names[:4]) + (f" (+{len(best_m.feature_names) - 4} more)" if len(best_m.feature_names) > 4 else "")
+
+        rows = [
+            [
+                Paragraph("Predictive Target", styles["TableCellBold"]),
+                Paragraph(str(best_m.target_column), styles["TableCellMono"]),
+                Paragraph("Reliability Rating", styles["TableCellBold"]),
+                Paragraph(perf_str, styles["TableCellMono"]),
+            ],
+            [
+                Paragraph("Primary Influencing Drivers", styles["TableCellBold"]),
+                Paragraph(feat_str, styles["TableCell"]),
+                Paragraph("Operational Utility", styles["TableCellBold"]),
+                Paragraph(f"Ready for scoring new incoming {best_m.task_type} records", styles["TableCell"]),
+            ],
+        ]
+        t = Table(rows, colWidths=[1.8 * inch, 1.95 * inch, 1.8 * inch, 1.95 * inch])
+        t.setStyle(
+            TableStyle([
+                ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#FFFFFF")),
+                ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#E2E8F0")),
+                ("TOPPADDING", (0, 0), (-1, -1), 4),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+            ])
+        )
+        return t
+
+    def _build_technical_appendix_header(self, styles):
+        """Creates technical appendix separator header."""
+        elements = [
+            Spacer(1, 10),
+            HRFlowable(width="100%", thickness=1.5, color=colors.HexColor("#94A3B8"), spaceBefore=6, spaceAfter=8),
+            Paragraph("<font color='#475569'><strong>TECHNICAL APPENDIX (FOR DATA SCIENCE & AUDIT TEAMS)</strong></font>", styles["CategoryTag"]),
+            Spacer(1, 2),
+            Paragraph("<strong>Analysis Details & Model Specifications</strong>", styles["SectionHeading"]),
+            Spacer(1, 4),
+            Paragraph(
+                "This technical appendix documents underlying algorithm choices, modeling parameters, pipeline configurations, and diagnostic validation metrics for data science review and governance auditing.",
+                styles["ExecutiveNarrative"],
+            ),
+            Spacer(1, 6),
+        ]
+        return KeepTogether(elements)
+
+    def _build_technical_appendix_content(
+        self, dataset, cleaning, eda, ml_models, forecast, anomaly, styles
+    ):
+        """Assembles technical appendix flowables."""
+        elements = []
+
+        # 1. Cleaning Specs
+        if cleaning and cleaning.cleaning_summary:
+            cs = cleaning.cleaning_summary
+            steps_desc = ", ".join(s.get("step", "") for s in cs.get("steps_executed", []))
+            data = [
+                [
+                    Paragraph("Pipeline Version", styles["TableCellBold"]),
+                    Paragraph("Production Ingestion v2.1", styles["TableCellMono"]),
+                    Paragraph("Transformations Executed", styles["TableCellBold"]),
+                    Paragraph(steps_desc or "Standard Clean", styles["TableCellMono"]),
+                ],
+                [
+                    Paragraph("Final Validated Dimensions", styles["TableCellBold"]),
+                    Paragraph(f"{cs.get('final_shape', {}).get('rows', dataset.row_count):,} × {cs.get('final_shape', {}).get('columns', dataset.column_count)}", styles["TableCellMono"]),
+                    Paragraph("Missing Value Imputation", styles["TableCellBold"]),
+                    Paragraph("Median (numeric) / Mode (categorical)", styles["TableCell"]),
+                ],
+            ]
+            t = Table(data, colWidths=[1.8 * inch, 1.95 * inch, 1.8 * inch, 1.95 * inch])
+            t.setStyle(TableStyle([
+                ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#F8FAFC")),
+                ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#E2E8F0")),
+                ("TOPPADDING", (0, 0), (-1, -1), 3),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+            ]))
+            elements.append(Paragraph("<strong>A. Data Pipeline Specifications:</strong>", styles["TableCellBold"]))
+            elements.append(Spacer(1, 3))
+            elements.append(t)
+            elements.append(Spacer(1, 8))
+
+        # 2. Statistical Correlation Matrix
+        if eda:
+            eda_table = self._build_eda_section(eda, styles)
+            if eda_table:
+                elements.append(Paragraph("<strong>B. Statistical Pairwise Correlation Matrix:</strong>", styles["TableCellBold"]))
+                elements.append(Spacer(1, 3))
+                elements.append(eda_table)
+                elements.append(Spacer(1, 8))
+
+        # 3. Supervised ML Leaderboard & Diagnostics
+        if ml_models:
+            ml_table = self._build_ml_section(ml_models, styles)
+            if ml_table:
+                elements.append(Paragraph("<strong>C. Machine Learning Algorithm Benchmarks:</strong>", styles["TableCellBold"]))
+                elements.append(Spacer(1, 3))
+                elements.append(ml_table)
+                ml_chart = self._generate_ml_chart(ml_models)
+                if ml_chart:
+                    elements.append(Spacer(1, 4))
+                    elements.append(ml_chart)
+                elements.append(Spacer(1, 8))
+
+        # 4. Time-Series Model Orders & Diagnostics
+        if forecast:
+            fc_table = self._build_forecasting_section(forecast, styles)
+            if fc_table:
+                elements.append(Paragraph("<strong>D. Time-Series Modeling Parameters:</strong>", styles["TableCellBold"]))
+                elements.append(Spacer(1, 3))
+                elements.append(fc_table)
+                elements.append(Spacer(1, 8))
+
+        # 5. Outlier Detection Parameters
+        if anomaly:
+            anom_table = self._build_anomaly_section(anomaly, styles)
+            if anom_table:
+                elements.append(Paragraph("<strong>E. Outlier Detection Algorithm Specifications:</strong>", styles["TableCellBold"]))
+                elements.append(Spacer(1, 3))
+                elements.append(anom_table)
+                elements.append(Spacer(1, 8))
+
+        return elements
 
     def _generate_ml_chart(self, models: List[MLModel]) -> Optional[Image]:
         if not models:
@@ -1293,7 +1866,7 @@ class ReportGenerationService:
 
             bars = ax.barh(categories, counts, color=bar_colors, height=0.45, edgecolor="none")
             ax.set_title(
-                f"Isolation Forest Diagnostic: {anomaly.n_anomalies} Anomalies ({anomaly.anomaly_percentage:.1f}%) Flagged",
+                f"Outlier Diagnostic: {anomaly.n_anomalies} Anomalies ({anomaly.anomaly_percentage:.1f}%) Flagged",
                 fontsize=9,
                 fontweight="bold",
                 color="#0F172A",

@@ -184,8 +184,8 @@ describe('Phase 9 Reports & Export Frontend Page', () => {
     renderComponent();
 
     // Check title & header
-    expect(screen.getByText('Intelligence Reports & Exports')).toBeInTheDocument();
-    expect(screen.getByText('Executive PDF Intelligence Report')).toBeInTheDocument();
+    expect(screen.getByText('Reports & Exports')).toBeInTheDocument();
+    expect(screen.getByText('Executive PDF Report')).toBeInTheDocument();
 
     // Check readiness counts
     await waitFor(() => {
@@ -210,7 +210,7 @@ describe('Phase 9 Reports & Export Frontend Page', () => {
     });
 
     await waitFor(() => {
-      expect(screen.queryByText(/Generating prediction preview schema/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/Loading export preview/i)).not.toBeInTheDocument();
     });
 
     expect(screen.getAllByText(/Random Forest Regressor/i).length).toBeGreaterThanOrEqual(1);
@@ -228,7 +228,7 @@ describe('Phase 9 Reports & Export Frontend Page', () => {
     renderComponent();
 
     await waitFor(() => {
-      expect(screen.getByText(/CSV Prediction Exporter/i)).toBeInTheDocument();
+      expect(screen.getByText(/Export Predictions as CSV/i)).toBeInTheDocument();
     });
 
     const forecastTab = screen.getByRole('button', { name: /forecast/i });
@@ -264,7 +264,7 @@ describe('Phase 9 Reports & Export Frontend Page', () => {
     renderComponent();
 
     const generateBtn = await screen.findByRole('button', {
-      name: /Generate & Download Executive PDF Report/i,
+      name: /Generate Report/i,
     });
     await waitFor(() => {
       expect(generateBtn).not.toBeDisabled();
@@ -291,7 +291,7 @@ describe('Phase 9 Reports & Export Frontend Page', () => {
     const forecastTab = screen.getByRole('button', { name: /forecast/i });
     fireEvent.click(forecastTab);
 
-    expect(await screen.findByText(/No FORECAST Predictions Available/i)).toBeInTheDocument();
+    expect(await screen.findByText(/No Predictions Available/i)).toBeInTheDocument();
     expect(await screen.findByText(/Go to Forecasting/i)).toBeInTheDocument();
   });
 });

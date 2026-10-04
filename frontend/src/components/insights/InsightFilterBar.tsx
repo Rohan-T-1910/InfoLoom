@@ -83,10 +83,10 @@ export const InsightFilterBar: React.FC<InsightFilterBarProps> = ({
                 ? 'border-purple-500/50 bg-purple-950/40 text-purple-300'
                 : 'border-white/10 text-slate-400 hover:text-white'
             }`}
-            title="When active, an AI phrasing layer polishes text for executive briefings while strictly preserving all facts."
+            title="Toggle between executive presentation phrasing and direct factual summary."
           >
             <Sparkles className={`w-3.5 h-3.5 mr-1.5 ${includeLLM ? 'text-purple-400' : 'text-slate-500'}`} />
-            {includeLLM ? 'AI Phrasing Active' : 'Deterministic NLG'}
+            {includeLLM ? 'Executive Phrasing' : 'Direct Facts'}
           </Button>
 
           {/* Re-generate / Refresh */}

@@ -5,6 +5,7 @@ from pydantic import ValidationError
 from sqlalchemy.orm import Session
 from app.api.dependencies import get_current_user, get_db
 from app.models.user import User
+from app.repositories.user_repository import user_repository
 from app.schemas.user import Token, UserCreate, UserLogin, UserResponse
 from app.services.auth_service import auth_service
 
@@ -136,3 +137,20 @@ def get_me(
 ):
     """Fetch details of currently authenticated user."""
     return current_user
+
+@router.post(
+    "/demo",
+    response_model=Token,
+    summary="Guest demo authentication"
+)
+def demo_login(
+    db: Annotated[Session, Depends(get_db)]
+):
+    """Provides a valid authentication token for guest/demo mode."""
+    user = user_repository.get_by_id(db, user_id=1)
+    if not user:
+        user = user_repository.get_by_email(db, "demo@infoloom.ai")
+    if not user:
+        user_in = UserCreate(email="demo@infoloom.ai", password="demoPassword123!", name="Demo Architect")
+        user = auth_service.register(db, user_in)
+    return auth_service.create_token_for_user(user)

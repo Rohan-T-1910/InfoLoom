@@ -10,6 +10,7 @@ import {
   ShieldAlert,
   Sparkles,
   FileSpreadsheet,
+  Layers,
   History,
   Settings,
   LogOut,
@@ -33,13 +34,14 @@ interface NavItem {
 const navItems: NavItem[] = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Datasets', href: '/datasets', icon: Database },
-  { name: 'Analysis / EDA', href: '/eda', icon: BarChart3, badge: 'Phase 3' },
-  { name: 'ML Models', href: '/models', icon: Cpu, badge: 'Phase 4' },
-  { name: 'Clustering', href: '/clustering', icon: Network, badge: 'Phase 5' },
-  { name: 'Forecasting', href: '/forecasting', icon: TrendingUp, badge: 'Phase 6' },
-  { name: 'Anomaly Detection', href: '/anomalies', icon: ShieldAlert, badge: 'Phase 7' },
-  { name: 'Insights', href: '/insights', icon: Sparkles, badge: 'Phase 8' },
-  { name: 'Reports & Export', href: '/reports', icon: FileSpreadsheet, badge: 'Phase 9' },
+  { name: 'Explore Data', href: '/eda', icon: BarChart3 },
+  { name: 'Predictive Modeling', href: '/models', icon: Cpu },
+  { name: 'Segmentation', href: '/clustering', icon: Network },
+  { name: 'Forecasting', href: '/forecasting', icon: TrendingUp },
+  { name: 'Anomaly Detection', href: '/anomalies', icon: ShieldAlert },
+  { name: 'Business Insights', href: '/insights', icon: Sparkles },
+  { name: 'Reports & Exports', href: '/reports', icon: FileSpreadsheet },
+  { name: 'Saved Models', href: '/registry', icon: Layers },
   { name: 'History', href: '/history', icon: History },
   { name: 'Profile / Settings', href: '/settings', icon: Settings },
 ];
@@ -58,7 +60,7 @@ export const AppShell: React.FC = () => {
   const currentNav = navItems.find((item) => location.pathname.startsWith(item.href)) || navItems[0];
 
   return (
-    <div className="flex min-h-screen bg-[#06040c] text-slate-200">
+    <div className="flex min-h-screen w-full overflow-x-hidden bg-[#06040c] text-slate-200">
       {/* Sidebar Desktop */}
       <aside className="hidden md:flex md:w-64 flex-col fixed inset-y-0 z-40 border-r border-white/[0.08] bg-[#090613]/90 backdrop-blur-xl">
         {/* Brand Header */}
@@ -197,9 +199,9 @@ export const AppShell: React.FC = () => {
       )}
 
       {/* Main Content Area */}
-      <div className="flex-1 md:pl-64 flex flex-col min-h-screen">
+      <div className="flex-1 md:pl-64 flex flex-col min-h-screen min-w-0 w-full overflow-x-hidden">
         {/* Top Header */}
-        <header className="sticky top-0 z-30 h-16 border-b border-white/[0.08] bg-[#07040e]/80 backdrop-blur-md px-6 flex items-center justify-between">
+        <header className="sticky top-0 z-30 h-16 w-full border-b border-white/[0.08] bg-[#07040e]/80 backdrop-blur-md px-6 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button
               onClick={() => setMobileMenuOpen(true)}
@@ -214,21 +216,10 @@ export const AppShell: React.FC = () => {
               <span className="font-semibold text-slate-100">{currentNav.name}</span>
             </div>
           </div>
-
-          <div className="flex items-center gap-3">
-            <Badge variant="purple" className="text-xs hidden sm:inline-flex">
-              FastAPI v1 Engine Active
-            </Badge>
-            <NavLink to="/datasets">
-              <Button size="sm" variant="default" className="text-xs h-8">
-                + Upload Data
-              </Button>
-            </NavLink>
-          </div>
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 p-6 md:p-8 max-w-7xl w-full mx-auto">
+        <main className="flex-1 p-4 sm:p-6 md:p-8 max-w-7xl w-full mx-auto min-w-0">
           <Outlet />
         </main>
       </div>

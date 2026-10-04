@@ -109,10 +109,10 @@ export const DatasetsPage: React.FC = () => {
         <div>
           <h1 className="text-2xl font-bold text-white tracking-tight flex items-center gap-2">
             <Database className="w-6 h-6 text-purple-400" />
-            <span>Dataset Ingestion & Management</span>
+            <span>Dataset Management</span>
           </h1>
           <p className="text-xs text-slate-400 mt-1">
-            Upload CSV datasets, run validation diagnostics, execute cleaning pipelines, and launch EDA.
+            Upload and manage your CSV datasets for exploration, modeling, and reporting.
           </p>
         </div>
 
@@ -129,7 +129,7 @@ export const DatasetsPage: React.FC = () => {
             <Button variant="glow" size="default" disabled={uploading} asChild>
               <span>
                 <Upload className={`w-4 h-4 mr-2 ${uploading ? 'animate-bounce' : ''}`} />
-                {uploading ? 'Ingesting CSV...' : 'Upload CSV File'}
+                {uploading ? 'Uploading...' : 'Upload CSV File'}
               </span>
             </Button>
           </label>
@@ -169,7 +169,7 @@ export const DatasetsPage: React.FC = () => {
             </div>
           ) : datasets.length === 0 ? (
             <div className="p-12 text-center text-slate-500 text-xs">
-              No datasets found. Click "Upload CSV File" above to get started.
+              No datasets found. Upload a CSV file above to start exploring your data.
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -179,9 +179,9 @@ export const DatasetsPage: React.FC = () => {
                     <th className="py-3 px-4">Filename</th>
                     <th className="py-3 px-3">Dimensions</th>
                     <th className="py-3 px-3">Size</th>
-                    <th className="py-3 px-3">Cleaning State</th>
+                    <th className="py-3 px-3">Status</th>
                     <th className="py-3 px-3">Uploaded</th>
-                    <th className="py-3 px-4 text-right">Pipelines & Actions</th>
+                    <th className="py-3 px-4 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/[0.05]">
@@ -209,7 +209,7 @@ export const DatasetsPage: React.FC = () => {
                           variant={dataset.has_cleaned ? 'success' : 'secondary'}
                           className="text-[10px] px-2 py-0.5"
                         >
-                          {dataset.has_cleaned ? 'Cleaned Ready' : 'Raw Data Only'}
+                          {dataset.has_cleaned ? 'Cleaned' : 'Original'}
                         </Badge>
                       </td>
 
@@ -225,10 +225,10 @@ export const DatasetsPage: React.FC = () => {
                             size="sm"
                             className="h-7 px-2 text-xs text-slate-300"
                             onClick={() => handlePreview(dataset, false)}
-                            title="Preview Raw Data"
+                            title="Preview Original Data"
                           >
                             <Eye className="w-3.5 h-3.5 mr-1" />
-                            Raw
+                            Original
                           </Button>
 
                           {/* Preview Cleaned */}
@@ -252,7 +252,7 @@ export const DatasetsPage: React.FC = () => {
                             className="h-7 px-2.5 text-xs text-slate-200 hover:text-white"
                             onClick={() => cleanMutation.mutate(dataset.id)}
                             disabled={cleanMutation.isPending}
-                            title="Execute Cleaning Pipeline"
+                            title="Clean Data"
                           >
                             <ShieldCheck className="w-3.5 h-3.5 mr-1 text-emerald-400" />
                             Clean
@@ -262,7 +262,7 @@ export const DatasetsPage: React.FC = () => {
                           <Link to={`/eda?datasetId=${dataset.id}`}>
                             <Button variant="default" size="sm" className="h-7 px-2.5 text-xs">
                               <BarChart3 className="w-3.5 h-3.5 mr-1 text-purple-200" />
-                              EDA
+                              Explore
                             </Button>
                           </Link>
 

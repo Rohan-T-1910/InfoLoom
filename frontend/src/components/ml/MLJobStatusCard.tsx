@@ -2,17 +2,13 @@ import React, { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../../services/api';
 import { MLJob } from '../../types';
-import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
+import { Card, CardContent } from '../ui/card';
 import { Badge } from '../ui/badge';
 import {
-  Clock,
   CheckCircle2,
   AlertCircle,
   Cpu,
   Trophy,
-  Layers,
-  Sparkles,
-  ArrowRight,
 } from 'lucide-react';
 
 interface MLJobStatusCardProps {
@@ -51,7 +47,7 @@ export const MLJobStatusCard: React.FC<MLJobStatusCardProps> = ({ jobId, onJobCo
     return (
       <div className="p-4 rounded-xl bg-rose-950/20 border border-rose-500/30 flex items-center gap-3 text-rose-300 text-sm">
         <AlertCircle className="w-5 h-5 text-rose-400 shrink-0" />
-        <span>Failed to retrieve job status.</span>
+        <span>We couldn't retrieve the training job status. Please check your network connection and try again.</span>
       </div>
     );
   }
@@ -60,6 +56,14 @@ export const MLJobStatusCard: React.FC<MLJobStatusCardProps> = ({ jobId, onJobCo
   const isRunning = job.status === 'running';
   const isCompleted = job.status === 'completed';
   const isFailed = job.status === 'failed';
+
+  const featureCount = Array.isArray(job.feature_columns) ? job.feature_columns.length : 0;
+  const testSplitPct = typeof job.test_size === 'number' ? Math.round(job.test_size * 100) : 20;
+  const taskTitle = typeof job.task_type === 'string' ? job.task_type.toUpperCase() : 'PREDICTION';
+
+  if (isFailed && job.error_message) {
+    console.error('InfoLoom ML Job Failure:', job.error_message);
+  }
 
   return (
     <Card className="border-white/[0.08] bg-[#0c0817]/95 overflow-hidden">
@@ -94,7 +98,11 @@ export const MLJobStatusCard: React.FC<MLJobStatusCardProps> = ({ jobId, onJobCo
             <div>
               <div className="flex items-center gap-2">
                 <h4 className="text-sm font-semibold text-white">
-                  Job #{job.id}: {job.task_type.toUpperCase()} Benchmark
+                  {isRunning || isPending
+                    ? 'Training and comparing models...'
+                    : isCompleted
+                    ? 'Model Training & Evaluation Completed'
+                    : 'Prediction Analysis Incomplete'}
                 </h4>
                 <Badge
                   variant={isCompleted ? 'success' : isFailed ? 'destructive' : 'purple'}
@@ -105,16 +113,16 @@ export const MLJobStatusCard: React.FC<MLJobStatusCardProps> = ({ jobId, onJobCo
               </div>
               <p className="text-xs text-slate-400 mt-0.5">
                 Target: <span className="text-purple-300 font-mono font-medium">{job.target_column}</span> •{' '}
-                {job.feature_columns.length} predictive features • {Math.round(job.test_size * 100)}% test split
+                {featureCount} predictive features • {testSplitPct}% unseen test split
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-3">
-            {isRunning && (
+            {(isRunning || isPending) && (
               <span className="text-xs text-purple-300 flex items-center gap-1.5 animate-pulse">
                 <span className="w-2 h-2 rounded-full bg-purple-400" />
-                Fitting estimators & evaluating CV folds...
+                Training and comparing models...
               </span>
             )}
 
@@ -122,14 +130,14 @@ export const MLJobStatusCard: React.FC<MLJobStatusCardProps> = ({ jobId, onJobCo
               <div className="flex items-center gap-2 bg-emerald-950/40 border border-emerald-500/30 px-3 py-1.5 rounded-lg text-emerald-300 text-xs">
                 <Trophy className="w-3.5 h-3.5 text-emerald-400" />
                 <span>
-                  Winner: Model #{job.best_model_id}
+                  Top Performer: Model #{job.best_model_id}
                 </span>
               </div>
             )}
 
             {isFailed && (
-              <div className="text-xs text-rose-400 font-mono">
-                {job.error_message || 'Training failed.'}
+              <div className="text-xs text-rose-300 max-w-md">
+                We couldn't complete the prediction analysis. Please check your selected target and data and try again.
               </div>
             )}
           </div>

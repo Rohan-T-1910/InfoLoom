@@ -17,13 +17,10 @@ import {
   Sliders,
   CheckCircle2,
   AlertTriangle,
-  ArrowRight,
-  TrendingDown,
-  Gauge,
-  HelpCircle,
   Play,
-  RotateCcw,
   Check,
+  ChevronDown,
+  Info,
 } from 'lucide-react';
 
 interface AnomalyConfigProps {
@@ -34,37 +31,59 @@ interface AnomalyConfigProps {
   isDetecting?: boolean;
 }
 
+type SensitivityTier = 'strict' | 'balanced' | 'broad';
+
 export const AnomalyConfig: React.FC<AnomalyConfigProps> = ({
   dataset,
   onEvaluationComplete,
   onRunComplete,
-  isEvaluating = false,
-  isDetecting = false,
 }) => {
-  const [useCleaned, setUseCleaned] = useState<boolean>(Boolean(dataset.has_cleaned));
   const [selectedFeatures, setSelectedFeatures] = useState<string[]>([]);
-  const [contamination, setContamination] = useState<number>(0.05);
-  const [nEstimators, setNEstimators] = useState<number>(100);
-  const [modelName, setModelName] = useState<string>('');
+  const [sensitivity, setSensitivity] = useState<SensitivityTier>('balanced');
+  const [customName, setCustomName] = useState<string>('');
+  const [showAdvanced, setShowAdvanced] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // Fetch available numeric anomaly features
+  // Map sensitivity tier to contamination float
+  const sensitivityMap: Record<SensitivityTier, { value: number; label: string; desc: string }> = {
+    strict: {
+      value: 0.01,
+      label: 'Strict (1%)',
+      desc: 'Flags only the most extreme outliers. Minimizes false alarms; best for critical audits.',
+    },
+    balanced: {
+      value: 0.05,
+      label: 'Balanced (5% - Recommended)',
+      desc: 'Detects noticeable variations while filtering out routine fluctuation. Ideal for general review.',
+    },
+    broad: {
+      value: 0.10,
+      label: 'Broad (10%)',
+      desc: 'Comprehensive scan that flags subtle drifts, edge cases, and borderline anomalies.',
+    },
+  };
+
+  const contamination = sensitivityMap[sensitivity].value;
+
+  // Fetch available numeric features
   const { data: featureData, isLoading: isLoadingFeatures } = useQuery({
-    queryKey: ['anomaly-features', dataset.id, useCleaned],
-    queryFn: () => api.getAnomalyFeatures(dataset.id, useCleaned),
+    queryKey: ['anomaly-features', dataset.id],
+    queryFn: () => api.getAnomalyFeatures(dataset.id, true),
   });
 
-  const numericFeatures = featureData?.numeric_features || [];
+  const numericFeatures = (featureData?.numeric_features || []).filter(
+    (f) => !f.is_identifier
+  );
   const recommendedFeatures = featureData?.recommended_features || [];
 
-  // Automatically select recommended features on initial load
+  // Auto-select recommended features
   useEffect(() => {
     if (recommendedFeatures.length > 0 && selectedFeatures.length === 0) {
       setSelectedFeatures(recommendedFeatures);
     } else if (numericFeatures.length > 0 && selectedFeatures.length === 0) {
       setSelectedFeatures(numericFeatures.slice(0, 4).map((f) => f.name));
     }
-  }, [recommendedFeatures, numericFeatures]);
+  }, [recommendedFeatures, numericFeatures, selectedFeatures.length]);
 
   const toggleFeature = (name: string) => {
     if (selectedFeatures.includes(name)) {
@@ -86,7 +105,7 @@ export const AnomalyConfig: React.FC<AnomalyConfigProps> = ({
     setSelectedFeatures(numericFeatures.map((f) => f.name));
   };
 
-  // Evaluation mutation (preview mode without saving model artifact)
+  // Preview evaluation mutation
   const evalMutation = useMutation({
     mutationFn: (payload: AnomalyEvaluationRequest) =>
       api.evaluateAnomalyConfig(dataset.id, payload),
@@ -101,18 +120,18 @@ export const AnomalyConfig: React.FC<AnomalyConfigProps> = ({
 
   const handleEvaluate = () => {
     if (selectedFeatures.length === 0) {
-      setErrorMessage('Please select at least one numeric feature to evaluate.');
+      setErrorMessage('Please select at least one numeric column to evaluate.');
       return;
     }
     setErrorMessage(null);
     evalMutation.mutate({
       features: selectedFeatures,
-      contamination: contamination,
-      use_cleaned: useCleaned,
+      contamination,
+      use_cleaned: true,
     });
   };
 
-  // Run Anomaly Detection mutation (persists model artifact & generates full diagnostics)
+  // Full detection run mutation
   const runMutation = useMutation({
     mutationFn: (payload: AnomalyRunRequest) =>
       api.runAnomalyDetection(dataset.id, payload),
@@ -127,112 +146,77 @@ export const AnomalyConfig: React.FC<AnomalyConfigProps> = ({
 
   const handleRun = () => {
     if (selectedFeatures.length === 0) {
-      setErrorMessage('Please select at least one numeric feature.');
+      setErrorMessage('Please select at least one numeric column to analyze.');
       return;
     }
     setErrorMessage(null);
+    const sensitivityName = sensitivity.charAt(0).toUpperCase() + sensitivity.slice(1);
     runMutation.mutate({
       features: selectedFeatures,
-      contamination: contamination,
-      n_estimators: nEstimators,
-      name: modelName.trim() || `Isolation Forest (${(contamination * 100).toFixed(1)}% contamination)`,
-      use_cleaned: useCleaned,
+      contamination,
+      n_estimators: 100,
+      name: customName.trim() || `Unusual Records Scan (${sensitivityName})`,
+      use_cleaned: true,
     });
   };
 
-  const contaminationPresets = [
-    { label: '1% Strict', value: 0.01, desc: 'Identifies only extreme, undeniable anomalies' },
-    { label: '3% Moderate', value: 0.03, desc: 'Balanced outlier detection for standard metrics' },
-    { label: '5% Standard', value: 0.05, desc: 'Recommended default for general exploration' },
-    { label: '10% Broad', value: 0.10, desc: 'Captures subtle drifts and borderline outliers' },
-  ];
+  const expectedCount = dataset.row_count ? Math.round(dataset.row_count * contamination) : '—';
 
   return (
-    <Card className="border-border/60 bg-card/60 backdrop-blur shadow-sm">
-      <CardHeader className="pb-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <div className="p-2 rounded-lg bg-rose-500/10 text-rose-500">
-              <ShieldAlert className="h-5 w-5" />
-            </div>
-            <div>
-              <CardTitle className="text-lg font-semibold tracking-tight">
-                Isolation Forest Configuration
+    <Card className="border border-white/[0.08] bg-[#0c0818]/90 overflow-hidden shadow-xl">
+      <CardHeader className="pb-4 border-b border-white/[0.06]">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <div className="flex items-center gap-2">
+              <ShieldAlert className="w-5 h-5 text-rose-500" />
+              <CardTitle className="text-base font-semibold text-white">
+                Find Unusual Records
               </CardTitle>
-              <CardDescription className="text-xs">
-                Configure unsupervised anomaly detection parameters, select input features, and calibrate expected contamination rate.
-              </CardDescription>
             </div>
+            <CardDescription className="text-xs text-slate-400 mt-1">
+              Select the numeric columns to check and choose how sensitive you want the outlier scan to be.
+            </CardDescription>
           </div>
-          <Badge variant="outline" className="border-rose-500/30 text-rose-400 bg-rose-500/5 text-xs">
-            Phase 7 Engine
+          <Badge variant="purple" className="text-[11px] self-start sm:self-auto">
+            {dataset.original_filename} ({dataset.row_count?.toLocaleString()} rows)
           </Badge>
         </div>
       </CardHeader>
 
-      <CardContent className="space-y-6">
+      <CardContent className="p-6 space-y-6">
         {errorMessage && (
-          <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm flex items-start space-x-2">
-            <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
-            <span>{errorMessage}</span>
-          </div>
-        )}
-
-        {/* Pipeline Dataset Source (Cleaned vs Raw) */}
-        {dataset.has_cleaned && (
-          <div className="flex items-center justify-between p-3 rounded-lg bg-muted/40 border border-border/40">
+          <div className="p-4 rounded-xl border border-rose-500/30 bg-rose-500/10 text-rose-300 text-xs flex items-start gap-3">
+            <AlertTriangle className="w-4 h-4 shrink-0 text-rose-400 mt-0.5" />
             <div>
-              <p className="text-xs font-semibold text-foreground">Cleaned Data Preprocessing Pipeline</p>
-              <p className="text-[11px] text-muted-foreground">
-                Use Phase 2 cleaned & imputed dataset ({dataset.row_count} rows)
-              </p>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Button
-                size="sm"
-                variant={useCleaned ? 'default' : 'outline'}
-                className="h-7 text-xs"
-                onClick={() => setUseCleaned(true)}
-              >
-                Cleaned
-              </Button>
-              <Button
-                size="sm"
-                variant={!useCleaned ? 'default' : 'outline'}
-                className="h-7 text-xs"
-                onClick={() => setUseCleaned(false)}
-              >
-                Raw
-              </Button>
+              <p className="font-semibold mb-0.5">Notice</p>
+              <p>{errorMessage}</p>
             </div>
           </div>
         )}
 
-        {/* Feature Selection */}
+        {/* Section 1: Choose Columns */}
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-1.5">
-              <Sliders className="h-4 w-4 text-primary" />
-              <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Target Numeric Features ({selectedFeatures.length} of {numericFeatures.length} selected)
-              </label>
-            </div>
+            <label className="text-xs font-semibold text-white flex items-center gap-1.5">
+              <Sliders className="w-4 h-4 text-purple-400" />
+              1. Columns to inspect ({selectedFeatures.length} of {numericFeatures.length} selected)
+            </label>
             <div className="flex items-center space-x-2">
               {recommendedFeatures.length > 0 && (
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-6 text-[11px] text-primary hover:text-primary/90 px-2"
+                  className="h-6 text-[11px] text-purple-300 hover:text-white px-2"
                   onClick={selectRecommended}
                 >
-                  <Sparkles className="h-3 w-3 mr-1" />
+                  <Sparkles className="h-3 w-3 mr-1 text-purple-400" />
                   Recommended
                 </Button>
               )}
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-6 text-[11px] text-muted-foreground hover:text-foreground px-2"
+                className="h-6 text-[11px] text-slate-400 hover:text-white px-2"
                 onClick={selectAll}
               >
                 Select All
@@ -241,12 +225,12 @@ export const AnomalyConfig: React.FC<AnomalyConfigProps> = ({
           </div>
 
           {isLoadingFeatures ? (
-            <div className="py-8 text-center text-xs text-muted-foreground">
-              Loading available numeric features...
+            <div className="py-6 text-center text-xs text-slate-500">
+              Loading available numeric columns...
             </div>
           ) : numericFeatures.length === 0 ? (
-            <div className="p-4 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-500 text-xs">
-              No suitable numeric features found in this dataset. Anomaly detection requires at least one numeric feature.
+            <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs">
+              No numeric columns found in this dataset. Outlier scanning requires at least one numeric metric.
             </div>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
@@ -258,28 +242,21 @@ export const AnomalyConfig: React.FC<AnomalyConfigProps> = ({
                     key={feat.name}
                     type="button"
                     onClick={() => toggleFeature(feat.name)}
-                    className={`flex flex-col text-left p-2.5 rounded-lg border text-xs transition-all ${
+                    className={`flex flex-col text-left p-3 rounded-xl border text-xs transition-all ${
                       isSelected
-                        ? 'border-rose-500/60 bg-rose-500/10 text-foreground font-medium shadow-sm ring-1 ring-rose-500/30'
-                        : 'border-border/50 bg-background/50 text-muted-foreground hover:border-border hover:bg-muted/30'
+                        ? 'border-rose-500/50 bg-rose-950/20 text-white font-medium shadow-sm ring-1 ring-rose-500/30'
+                        : 'border-white/[0.06] bg-white/[0.02] text-slate-400 hover:border-white/10 hover:text-slate-200'
                     }`}
                   >
                     <div className="flex items-center justify-between w-full mb-1">
                       <span className="truncate font-semibold">{feat.name}</span>
-                      {isSelected ? (
-                        <Check className="h-3.5 w-3.5 text-rose-500 shrink-0" />
-                      ) : null}
+                      {isSelected && <Check className="h-3.5 w-3.5 text-rose-400 shrink-0 ml-1" />}
                     </div>
-                    <div className="flex items-center space-x-2 text-[10px] text-muted-foreground">
-                      {feat.missing_count > 0 ? (
-                        <span className="text-amber-500">{feat.missing_count} nulls</span>
-                      ) : (
-                        <span className="text-emerald-500">100% clean</span>
-                      )}
+                    <div className="flex items-center gap-1.5 text-[10px] text-slate-400">
                       {isRecommended && (
-                        <span className="text-primary font-medium flex items-center">
+                        <span className="text-purple-400 font-medium flex items-center">
                           <Sparkles className="h-2.5 w-2.5 mr-0.5" />
-                          rec
+                          Recommended
                         </span>
                       )}
                     </div>
@@ -290,144 +267,109 @@ export const AnomalyConfig: React.FC<AnomalyConfigProps> = ({
           )}
         </div>
 
-        {/* Contamination Rate Parameter */}
-        <div className="space-y-3 pt-2 border-t border-border/40">
+        {/* Section 2: Sensitivity Selection */}
+        <div className="space-y-3 pt-3 border-t border-white/[0.06]">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-1.5">
-              <Gauge className="h-4 w-4 text-rose-400" />
-              <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Contamination Rate / Anomaly Sensitivity
-              </label>
-            </div>
-            <span className="font-mono text-xs font-semibold text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded border border-rose-500/20">
-              {(contamination * 100).toFixed(1)}% (
-              {dataset.row_count ? Math.round(dataset.row_count * contamination) : '—'} expected anomalies)
+            <label className="text-xs font-semibold text-white flex items-center gap-1.5">
+              <ShieldAlert className="w-4 h-4 text-rose-400" />
+              2. Outlier Detection Sensitivity
+            </label>
+            <span className="text-xs font-mono text-rose-400 bg-rose-950/40 border border-rose-800/40 px-2 py-0.5 rounded">
+              ~{expectedCount} records expected
             </span>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-            {contaminationPresets.map((preset) => {
-              const active = Math.abs(contamination - preset.value) < 0.001;
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            {(['strict', 'balanced', 'broad'] as const).map((tierKey) => {
+              const preset = sensitivityMap[tierKey];
+              const isSelected = sensitivity === tierKey;
               return (
                 <button
-                  key={preset.label}
+                  key={tierKey}
                   type="button"
-                  onClick={() => setContamination(preset.value)}
-                  className={`p-2.5 text-left rounded-lg border text-xs transition-all ${
-                    active
-                      ? 'border-rose-500/60 bg-rose-500/15 text-foreground ring-1 ring-rose-500/30'
-                      : 'border-border/50 bg-background/50 text-muted-foreground hover:bg-muted/30'
+                  onClick={() => setSensitivity(tierKey)}
+                  className={`p-4 text-left rounded-xl border transition-all ${
+                    isSelected
+                      ? 'border-rose-500/60 bg-rose-950/30 ring-1 ring-rose-500/40 text-white'
+                      : 'border-white/[0.06] bg-white/[0.02] text-slate-400 hover:border-white/10 hover:text-slate-200'
                   }`}
                 >
-                  <div className="font-medium text-xs mb-0.5">{preset.label}</div>
-                  <div className="text-[10px] text-muted-foreground line-clamp-1">{preset.desc}</div>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="font-semibold text-xs text-white capitalize">{preset.label}</span>
+                    {isSelected && <Check className="w-3.5 h-3.5 text-rose-400" />}
+                  </div>
+                  <p className="text-[11px] text-slate-400 leading-relaxed">{preset.desc}</p>
                 </button>
               );
             })}
           </div>
-
-          {/* Slider for fine adjustment */}
-          <div className="flex items-center space-x-3 pt-1">
-            <input
-              type="range"
-              min="0.005"
-              max="0.25"
-              step="0.005"
-              value={contamination}
-              onChange={(e) => setContamination(parseFloat(e.target.value))}
-              className="w-full accent-rose-500 h-1.5 bg-muted rounded-lg appearance-none cursor-pointer"
-            />
-          </div>
         </div>
 
-        {/* Advanced Model Parameters */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-border/40">
-          <div>
-            <label className="block text-xs font-medium text-muted-foreground mb-1.5">
-              Ensemble Trees (n_estimators)
-            </label>
-            <div className="flex items-center space-x-2">
-              {[50, 100, 200].map((trees) => (
-                <Button
-                  key={trees}
-                  type="button"
-                  size="sm"
-                  variant={nEstimators === trees ? 'default' : 'outline'}
-                  className="h-8 text-xs flex-1"
-                  onClick={() => setNEstimators(trees)}
-                >
-                  {trees} trees
-                </Button>
-              ))}
+        {/* Collapsible Custom Title */}
+        <div className="pt-2 border-t border-white/[0.04]">
+          <button
+            type="button"
+            onClick={() => setShowAdvanced(!showAdvanced)}
+            className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-slate-200 font-medium transition-colors"
+          >
+            <Sliders className="w-3.5 h-3.5 text-slate-500" />
+            <span>Scan Options</span>
+            <ChevronDown className={`w-3.5 h-3.5 transition-transform ${showAdvanced ? 'rotate-180' : ''}`} />
+          </button>
+
+          {showAdvanced && (
+            <div className="mt-3 p-4 rounded-xl bg-white/[0.02] border border-white/[0.04] max-w-md">
+              <label className="text-xs text-slate-300 font-medium block mb-1">
+                Scan Name (Optional)
+              </label>
+              <input
+                type="text"
+                placeholder="e.g. Q4 Sales Outlier Audit"
+                value={customName}
+                onChange={(e) => setCustomName(e.target.value)}
+                className="w-full bg-[#090514] border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-rose-500"
+              />
+              <span className="text-[10px] text-slate-500 mt-1 block">
+                Assign a custom name to recognize this scan in saved history.
+              </span>
             </div>
-            <p className="text-[10px] text-muted-foreground mt-1">
-              Higher tree counts provide smoother score distributions at slight compute cost.
-            </p>
-          </div>
-
-          <div>
-            <label className="block text-xs font-medium text-muted-foreground mb-1.5">
-              Custom Model Tag / Identifier (Optional)
-            </label>
-            <input
-              type="text"
-              placeholder={`e.g. Q4 Audit Isolation Forest`}
-              value={modelName}
-              onChange={(e) => setModelName(e.target.value)}
-              className="w-full h-8 px-3 text-xs bg-background/60 border border-border/60 rounded-md focus:outline-none focus:ring-1 focus:ring-rose-500/50"
-            />
-            <p className="text-[10px] text-muted-foreground mt-1">
-              Used to index saved models in the audit history.
-            </p>
-          </div>
+          )}
         </div>
 
-        {/* Action Buttons */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-border/40">
-          <div className="flex items-center space-x-1.5 text-xs text-muted-foreground">
-            <HelpCircle className="h-3.5 w-3.5" />
-            <span>Deterministic isolation using median imputation & standard scaling</span>
-          </div>
+        {/* Action Bar */}
+        <div className="pt-2 border-t border-white/[0.06] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <p className="text-xs text-slate-400">
+            {selectedFeatures.length > 0 ? (
+              <span>
+                Checking <strong className="text-white">{selectedFeatures.length} columns</strong> using{' '}
+                <strong className="text-rose-400 capitalize">{sensitivity}</strong> sensitivity.
+              </span>
+            ) : (
+              'Select at least one column above.'
+            )}
+          </p>
 
-          <div className="flex items-center space-x-2 w-full sm:w-auto">
+          <div className="flex items-center gap-3">
             <Button
               variant="outline"
               size="sm"
               onClick={handleEvaluate}
-              disabled={isEvaluating || evalMutation.isPending || selectedFeatures.length === 0}
-              className="h-9 text-xs border-border/70 flex-1 sm:flex-initial"
+              disabled={evalMutation.isPending || runMutation.isPending || selectedFeatures.length === 0}
+              className="text-xs text-slate-300"
             >
-              {evalMutation.isPending || isEvaluating ? (
-                <>
-                  <RotateCcw className="h-3.5 w-3.5 mr-1.5 animate-spin" />
-                  Calculating Preview...
-                </>
-              ) : (
-                <>
-                  <TrendingDown className="h-3.5 w-3.5 mr-1.5" />
-                  Preview Scores
-                </>
-              )}
+              <Sparkles className={`w-3.5 h-3.5 mr-1.5 text-purple-400 ${evalMutation.isPending ? 'animate-spin' : ''}`} />
+              {evalMutation.isPending ? 'Previewing Scan...' : 'Preview Scan'}
             </Button>
 
             <Button
-              variant="default"
+              variant="glow"
               size="sm"
               onClick={handleRun}
-              disabled={isDetecting || runMutation.isPending || selectedFeatures.length === 0}
-              className="h-9 text-xs bg-rose-600 hover:bg-rose-500 text-white font-medium flex-1 sm:flex-initial shadow-sm"
+              disabled={runMutation.isPending || evalMutation.isPending || selectedFeatures.length === 0}
+              className="text-xs bg-rose-600 hover:bg-rose-500 text-white font-medium"
             >
-              {runMutation.isPending || isDetecting ? (
-                <>
-                  <RotateCcw className="h-3.5 w-3.5 mr-1.5 animate-spin" />
-                  Training Isolation Forest...
-                </>
-              ) : (
-                <>
-                  <Play className="h-3.5 w-3.5 mr-1.5 fill-current" />
-                  Run Anomaly Detection
-                </>
-              )}
+              <Play className={`w-3.5 h-3.5 mr-1.5 fill-current ${runMutation.isPending ? 'animate-pulse' : ''}`} />
+              {runMutation.isPending ? 'Scanning Dataset...' : 'Scan for Unusual Records'}
             </Button>
           </div>
         </div>

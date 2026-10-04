@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Component, ErrorInfo, ReactNode } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useSearchParams } from 'react-router-dom';
 import { api } from '../services/api';
@@ -27,7 +27,58 @@ import {
   Crosshair,
   TrendingDown,
   History,
+  AlertCircle,
 } from 'lucide-react';
+
+interface ErrorBoundaryProps {
+  children: ReactNode;
+}
+
+interface ErrorBoundaryState {
+  hasError: boolean;
+  error: Error | null;
+}
+
+class SegmentationErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  constructor(props: ErrorBoundaryProps) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.error('Segmentation UI Render Error:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <Card className="border-amber-500/30 bg-amber-950/20 p-8 text-center my-6">
+          <AlertCircle className="w-10 h-10 text-amber-400 mx-auto mb-3" />
+          <h3 className="text-base font-semibold text-white mb-1.5">
+            Unable to display group results
+          </h3>
+          <p className="text-xs text-slate-300 max-w-md mx-auto mb-4 leading-relaxed">
+            We couldn't render the group profiles. Please check your selected fields, or refresh the grouping to try again.
+          </p>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => this.setState({ hasError: false, error: null })}
+            className="text-xs border-amber-500/30 text-amber-200 hover:bg-amber-500/20"
+          >
+            <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
+            Try Again
+          </Button>
+        </Card>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 export const ClusteringPage: React.FC = () => {
   const queryClient = useQueryClient();
@@ -104,160 +155,155 @@ export const ClusteringPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Top Header & Controls */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-white/[0.08]">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="font-mono text-xs uppercase tracking-widest text-purple-400">
-              Phase 5 • Unsupervised Learning
-            </span>
-            <Badge variant="purple" className="text-[10px]">
-              Customer Segmentation
-            </Badge>
+    <SegmentationErrorBoundary>
+      <div className="space-y-6">
+        {/* Top Header & Controls */}
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-white/[0.08]">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-3">
+              <Network className="w-6 h-6 text-purple-400" />
+              Find Groups in Your Data
+            </h1>
+            <p className="text-xs text-slate-400 mt-1">
+              Discover groups of similar records and understand what makes each group different.
+            </p>
           </div>
-          <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-3">
-            <Network className="w-6 h-6 text-purple-400" />
-            Clustering & Segmentation Engine
-          </h1>
-          <p className="text-xs text-slate-400 mt-1">
-            Standardized distance clustering, mathematical K selection (Elbow + Silhouette), segment profiles, and 2D visual projections.
-          </p>
+
+          {/* Dataset Selector & Navigation */}
+          <div className="flex flex-wrap items-center gap-3">
+            {datasets.length > 0 ? (
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-slate-400 font-medium">Dataset:</span>
+                <select
+                  value={selectedDatasetId || ''}
+                  onChange={(e) => handleDatasetChange(Number(e.target.value))}
+                  className="bg-[#0e091b] border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-purple-500 font-medium transition-colors"
+                >
+                  {datasets.map((d) => (
+                    <option key={d.id} value={d.id} className="bg-[#0e091b] text-white">
+                      {d.original_filename} ({d.row_count} rows)
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ) : (
+              <Link to="/datasets">
+                <Button variant="outline" size="sm" className="text-xs">
+                  <Database className="w-3.5 h-3.5 mr-1.5" />
+                  Upload Dataset
+                </Button>
+              </Link>
+            )}
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => refetchModels()}
+              disabled={isFetchingModels || !effectiveId}
+              className="text-xs"
+            >
+              <RefreshCw
+                className={`w-3.5 h-3.5 mr-1.5 ${isFetchingModels ? 'animate-spin' : ''}`}
+              />
+              Refresh
+            </Button>
+
+            <Link to={`/eda?datasetId=${effectiveId}`}>
+              <Button variant="outline" size="sm" className="text-xs text-slate-300">
+                <BarChart3 className="w-3.5 h-3.5 mr-1.5 text-purple-400" />
+                Explore Data
+              </Button>
+            </Link>
+
+            <Link to={`/models?datasetId=${effectiveId}`}>
+              <Button variant="outline" size="sm" className="text-xs text-slate-300">
+                <Cpu className="w-3.5 h-3.5 mr-1.5 text-purple-400" />
+                Predictive Modeling
+              </Button>
+            </Link>
+          </div>
         </div>
 
-        {/* Dataset Selector & Navigation */}
-        <div className="flex flex-wrap items-center gap-3">
-          {datasets.length > 0 ? (
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-slate-400 font-medium">Dataset:</span>
-              <select
-                value={selectedDatasetId || ''}
-                onChange={(e) => handleDatasetChange(Number(e.target.value))}
-                className="bg-[#0e091b] border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-purple-500 font-medium transition-colors"
-              >
-                {datasets.map((d) => (
-                  <option key={d.id} value={d.id} className="bg-[#0e091b] text-white">
-                    {d.original_filename} ({d.row_count} rows)
-                  </option>
-                ))}
-              </select>
+        {/* No Datasets Empty State */}
+        {!isLoadingDatasets && datasets.length === 0 && (
+          <Card className="border-white/[0.08] bg-[#0c0817]/90 p-12 text-center">
+            <div className="w-16 h-16 rounded-2xl bg-purple-600/10 border border-purple-500/20 text-purple-400 mx-auto flex items-center justify-center mb-4">
+              <Database className="w-8 h-8" />
             </div>
-          ) : (
+            <h3 className="text-lg font-semibold text-white mb-2">No Datasets Available</h3>
+            <p className="text-sm text-slate-400 max-w-md mx-auto mb-6">
+              Upload a dataset to group similar records into meaningful segments.
+            </p>
             <Link to="/datasets">
-              <Button variant="outline" size="sm" className="text-xs">
-                <Database className="w-3.5 h-3.5 mr-1.5" />
+              <Button variant="glow" size="default">
+                <Database className="w-4 h-4 mr-2" />
                 Upload Dataset
               </Button>
             </Link>
-          )}
+          </Card>
+        )}
 
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => refetchModels()}
-            disabled={isFetchingModels || !effectiveId}
-            className="text-xs"
-          >
-            <RefreshCw
-              className={`w-3.5 h-3.5 mr-1.5 ${isFetchingModels ? 'animate-spin' : ''}`}
+        {/* Main Clustering Workspace */}
+        {currentDataset && (
+          <div className="space-y-6">
+            {/* Step 1: Configuration Form */}
+            <ClusteringConfig
+              key={currentDataset.id}
+              dataset={currentDataset}
+              selectedK={selectedK}
+              onKChange={setSelectedK}
+              onEvaluationComplete={handleEvaluationComplete}
+              onRunComplete={handleRunComplete}
             />
-            Refresh
-          </Button>
 
-          <Link to={`/eda?datasetId=${effectiveId}`}>
-            <Button variant="outline" size="sm" className="text-xs text-slate-300">
-              <BarChart3 className="w-3.5 h-3.5 mr-1.5 text-purple-400" />
-              View EDA
-            </Button>
-          </Link>
+            {/* Step 2: Evaluation Diagnostic (if triggered) */}
+            {evaluationResult && (
+              <ClusteringEvaluationCard
+                evaluation={evaluationResult}
+                currentK={selectedK}
+                onApplyK={setSelectedK}
+              />
+            )}
 
-          <Link to={`/models?datasetId=${effectiveId}`}>
-            <Button variant="outline" size="sm" className="text-xs text-slate-300">
-              <Cpu className="w-3.5 h-3.5 mr-1.5 text-purple-400" />
-              Supervised ML
-            </Button>
-          </Link>
-        </div>
-      </div>
-
-      {/* No Datasets Empty State */}
-      {!isLoadingDatasets && datasets.length === 0 && (
-        <Card className="border-white/[0.08] bg-[#0c0817]/90 p-12 text-center">
-          <div className="w-16 h-16 rounded-2xl bg-purple-600/10 border border-purple-500/20 text-purple-400 mx-auto flex items-center justify-center mb-4">
-            <Database className="w-8 h-8" />
-          </div>
-          <h3 className="text-lg font-semibold text-white mb-2">No Datasets Available</h3>
-          <p className="text-sm text-slate-400 max-w-md mx-auto mb-6">
-            Upload a dataset to run unsupervised K-Means clustering, optimize cluster count with elbow curves, and profile customer segments.
-          </p>
-          <Link to="/datasets">
-            <Button variant="glow" size="default">
-              <Database className="w-4 h-4 mr-2" />
-              Upload First Dataset
-            </Button>
-          </Link>
-        </Card>
-      )}
-
-      {/* Main Clustering Workspace */}
-      {currentDataset && (
-        <div className="space-y-6">
-          {/* Step 1: Configuration Form */}
-          <ClusteringConfig
-            dataset={currentDataset}
-            selectedK={selectedK}
-            onKChange={setSelectedK}
-            onEvaluationComplete={handleEvaluationComplete}
-            onRunComplete={handleRunComplete}
-          />
-
-          {/* Step 2: Evaluation Diagnostic (if triggered) */}
-          {evaluationResult && (
-            <ClusteringEvaluationCard
-              evaluation={evaluationResult}
-              currentK={selectedK}
-              onApplyK={setSelectedK}
-            />
-          )}
-
-          {/* Step 3: Detailed Segmentation Results (if model selected) */}
-          {detailedModel && (
-            <div className="space-y-6">
-              <div className="flex items-center justify-between pb-1 border-b border-white/[0.06]">
-                <div className="flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
-                  <h3 className="text-base font-semibold text-white">
-                    Active Segmentation: {detailedModel.name}
-                  </h3>
-                  <Badge variant="purple" className="text-[10px]">
-                    K = {detailedModel.k}
-                  </Badge>
+            {/* Step 3: Detailed Segmentation Results (if model selected) */}
+            {detailedModel && (
+              <div className="space-y-6">
+                <div className="flex items-center justify-between pb-1 border-b border-white/[0.06]">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
+                    <h3 className="text-base font-semibold text-white">
+                      Active Grouping: {detailedModel.name}
+                    </h3>
+                    <Badge variant="purple" className="text-[10px] font-normal">
+                      {detailedModel.k} Groups
+                    </Badge>
+                  </div>
+                  <span className="text-xs text-slate-400 font-mono">
+                    {new Date(detailedModel.created_at).toLocaleString()}
+                  </span>
                 </div>
-                <span className="text-xs text-slate-400 font-mono">
-                  {new Date(detailedModel.created_at).toLocaleString()}
-                </span>
+
+                {/* Distribution & Balances */}
+                <ClusterDistributionCard model={detailedModel} />
+
+                {/* 2D Scatter Visualization */}
+                <ClusterScatterPlot model={detailedModel} />
+
+                {/* Profiles & Parametric Statistics */}
+                <ClusterProfilesCard model={detailedModel} />
               </div>
+            )}
 
-              {/* Distribution & Balances */}
-              <ClusterDistributionCard model={detailedModel} />
-
-              {/* 2D Scatter Visualization */}
-              <ClusterScatterPlot model={detailedModel} />
-
-              {/* Profiles & Parametric Statistics */}
-              <ClusterProfilesCard model={detailedModel} />
-            </div>
-          )}
-
-          {/* Step 4: Clustering History */}
-          <ClusteringHistoryList
-            models={modelsSummary}
-            selectedModelId={selectedModelId}
-            onSelectModel={setSelectedModelId}
-            datasetId={currentDataset.id}
-          />
-        </div>
-      )}
-    </div>
+            {/* Step 4: Clustering History */}
+            <ClusteringHistoryList
+              models={modelsSummary}
+              selectedModelId={selectedModelId}
+              onSelectModel={setSelectedModelId}
+              datasetId={currentDataset.id}
+            />
+          </div>
+        )}
+      </div>
+    </SegmentationErrorBoundary>
   );
 };

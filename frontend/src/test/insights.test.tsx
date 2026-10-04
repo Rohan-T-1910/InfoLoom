@@ -75,9 +75,9 @@ describe('Phase 8 Business Insights Frontend Components', () => {
       screen.getByText(/Analysis confirms that average 'revenue'/i)
     ).toBeInTheDocument();
 
-    // Toggle template view
-    fireEvent.click(screen.getByText('AI Phrased'));
-    expect(screen.getByText('Template Text')).toBeInTheDocument();
+    // Toggle phrasing view
+    fireEvent.click(screen.getByText('Executive Phrasing'));
+    expect(screen.getByText('Direct Facts')).toBeInTheDocument();
   });
 
   it('expands supporting evidence and mathematical verification in InsightCard', () => {
@@ -90,7 +90,7 @@ describe('Phase 8 Business Insights Frontend Components', () => {
     const expandBtn = screen.getByText(/Supporting Evidence & Analytical Basis/i);
     fireEvent.click(expandBtn);
 
-    expect(screen.getByText('Deterministic Rule Verification')).toBeInTheDocument();
+    expect(screen.getByText('Data Verification')).toBeInTheDocument();
     expect(screen.getByText('100% Data Backed')).toBeInTheDocument();
     expect(screen.getAllByText('error_rate').length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText('top feature')).toBeInTheDocument();
@@ -144,7 +144,7 @@ describe('Phase 8 Business Insights Frontend Components', () => {
     expect(onSearch).toHaveBeenCalledWith('revenue');
 
     // Toggle LLM
-    fireEvent.click(screen.getByText('Deterministic NLG'));
+    fireEvent.click(screen.getByText('Direct Facts'));
     expect(onToggle).toHaveBeenCalledTimes(1);
 
     // Refresh

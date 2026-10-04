@@ -198,16 +198,13 @@ export const ReportsPage: React.FC = () => {
         <div className="relative z-10 max-w-3xl">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-purple-500/30 bg-purple-950/40 text-purple-300 text-xs font-semibold mb-4">
             <FileSpreadsheet className="w-3.5 h-3.5" />
-            <span>Phase 9 Executive Reporting & Prediction Export</span>
+            <span>Executive Reports &amp; Exports</span>
           </div>
           <h1 className="text-3xl font-bold tracking-tight text-white mb-2">
-            Intelligence Reports & Exports
+            Reports &amp; Exports
           </h1>
           <p className="text-sm text-slate-300 leading-relaxed mb-6">
-            Compile your entire analytical lifecycle — statistical EDA, supervised ML benchmarks,
-            segmentation, ARIMA trajectories, anomaly diagnostics, and deterministic business
-            insights — into an executive, publication-grade PDF report or export raw prediction
-            payloads as CSV.
+            Create publication-ready PDF summary reports and export prediction datasets across exploration, predictive modeling, segmentation, and forecasting.
           </p>
 
           {/* Dataset Selector */}
@@ -286,17 +283,17 @@ export const ReportsPage: React.FC = () => {
                 <div>
                   <CardTitle className="text-xl font-bold text-white flex items-center gap-2.5">
                     <FileText className="w-5 h-5 text-purple-400" />
-                    Executive PDF Intelligence Report
+                    Executive PDF Report
                   </CardTitle>
                   <CardDescription className="text-slate-400 text-xs mt-1">
-                    Multi-phase synthesis with charts, benchmark tables, and strategic recommendations.
+                    Comprehensive summary with charts, benchmark tables, and key findings.
                   </CardDescription>
                 </div>
                 <Badge
                   variant="outline"
                   className="bg-purple-950/50 text-purple-300 border-purple-500/30 text-xs px-2.5 py-1"
                 >
-                  ReportLab 5.0 Platypus
+                  Executive PDF
                 </Badge>
               </div>
             </CardHeader>
@@ -310,23 +307,23 @@ export const ReportsPage: React.FC = () => {
                   <div className="text-lg font-bold text-purple-300 font-mono mt-0.5">
                     {readiness?.available_sections_count || 0} / {readiness?.total_sections_count || 8}
                   </div>
-                  <div className="text-[10px] text-slate-400">Phases Compiled</div>
+                  <div className="text-[10px] text-slate-400">Sections Included</div>
                 </div>
                 <div className="border-x border-white/[0.06]">
                   <div className="text-[11px] font-semibold uppercase text-slate-400 tracking-wider">
                     Visual Layout
                   </div>
-                  <div className="text-lg font-bold text-emerald-400 font-mono mt-0.5">Two-Pass</div>
-                  <div className="text-[10px] text-slate-400">Page X of Y Footers</div>
+                  <div className="text-lg font-bold text-emerald-400 font-mono mt-0.5">Automated</div>
+                  <div className="text-[10px] text-slate-400">Numbered Pages</div>
                 </div>
                 <div>
                   <div className="text-[11px] font-semibold uppercase text-slate-400 tracking-wider">
-                    Missing Phases
+                    Pending Sections
                   </div>
                   <div className="text-lg font-bold text-slate-300 font-mono mt-0.5">
                     {(readiness?.total_sections_count || 8) - (readiness?.available_sections_count || 0)}
                   </div>
-                  <div className="text-[10px] text-slate-400">Gracefully Omitted</div>
+                  <div className="text-[10px] text-slate-400">Not Yet Run</div>
                 </div>
               </div>
 
@@ -342,17 +339,17 @@ export const ReportsPage: React.FC = () => {
                   {isGeneratingPdf ? (
                     <>
                       <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                      Assembling Flowables & Rendering Charts...
+                      Generating Executive PDF...
                     </>
                   ) : (
                     <>
                       <Download className="w-4 h-4 mr-2" />
-                      Generate & Download Executive PDF Report
+                      Generate Report
                     </>
                   )}
                 </Button>
                 <p className="text-[11px] text-center text-slate-400 mt-2">
-                  Assembles clean typography, Matplotlib figures, benchmark tables, and deterministic insights.
+                  Includes summary tables, charts, model evaluations, and key business insights.
                 </p>
               </div>
             </CardContent>
@@ -380,7 +377,7 @@ export const ReportsPage: React.FC = () => {
               {isLoadingReadiness ? (
                 <div className="py-8 text-center text-slate-400 text-xs">
                   <RefreshCw className="w-5 h-5 animate-spin mx-auto mb-2 text-purple-400" />
-                  Inspecting multi-phase database records...
+                  Checking dataset readiness...
                 </div>
               ) : (
                 readiness?.sections.map((section) => {
@@ -403,12 +400,6 @@ export const ReportsPage: React.FC = () => {
                         <div>
                           <div className="flex items-center gap-2">
                             <span className="text-xs font-semibold text-white">{section.name}</span>
-                            <Badge
-                              variant="outline"
-                              className="text-[10px] px-1.5 py-0 border-white/10 text-slate-400"
-                            >
-                              {section.phase}
-                            </Badge>
                           </div>
                           <p className="text-[11px] text-slate-400 mt-0.5 leading-snug">
                             {section.detail}
@@ -445,23 +436,23 @@ export const ReportsPage: React.FC = () => {
           </Card>
         </div>
 
-        {/* Right Column: CSV Prediction Export Engine (5 cols) */}
+        {/* Right Column: CSV Prediction Export (5 cols) */}
         <div className="lg:col-span-5 space-y-6">
           <Card className="border border-white/[0.08] bg-[#0c0818]/90 shadow-xl">
             <CardHeader className="border-b border-white/[0.06] pb-4">
               <CardTitle className="text-lg font-bold text-white flex items-center gap-2">
                 <FileSpreadsheet className="w-5 h-5 text-emerald-400" />
-                CSV Prediction Exporter
+                Export Predictions as CSV
               </CardTitle>
               <CardDescription className="text-slate-400 text-xs">
-                Export high-resolution predictions with inputs, actuals, and residual errors.
+                Export prediction results with original input features and calculated values.
               </CardDescription>
             </CardHeader>
             <CardContent className="p-6 space-y-5">
               {/* Type Switcher Tabs */}
               <div>
                 <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 block">
-                  Select Prediction Stream
+                  Select Prediction Type
                 </label>
                 <div className="grid grid-cols-3 gap-1.5 p-1 rounded-xl bg-black/40 border border-white/10">
                   <button
@@ -477,7 +468,7 @@ export const ReportsPage: React.FC = () => {
                     }`}
                   >
                     <Cpu className="w-3.5 h-3.5" />
-                    <span>ML Model</span>
+                    <span>Predictive Models</span>
                   </button>
 
                   <button
@@ -518,22 +509,22 @@ export const ReportsPage: React.FC = () => {
               {isPendingCsvPreview || isLoadingCsvPreview || (!csvPreview && !csvPreviewError) ? (
                 <div className="p-8 text-center text-slate-400 text-xs rounded-xl border border-white/10 bg-black/20">
                   <RefreshCw className="w-4 h-4 animate-spin mx-auto mb-2 text-purple-400" />
-                  Generating prediction preview schema...
+                  Loading export preview...
                 </div>
               ) : csvPreviewError ? (
                 <div className="p-5 rounded-xl border border-amber-500/30 bg-amber-950/20 text-center space-y-3">
                   <AlertCircle className="w-8 h-8 text-amber-400 mx-auto" />
                   <div>
                     <h4 className="text-xs font-bold text-amber-200">
-                      No {exportType.toUpperCase()} Predictions Available
+                      No Predictions Available
                     </h4>
                     <p className="text-[11px] text-amber-300/80 mt-1">
-                      Execute {exportType.toUpperCase()} analysis first to generate prediction records.
+                      Run {exportType === 'ml' ? 'predictive modeling' : exportType === 'forecast' ? 'forecasting' : 'anomaly detection'} first to generate prediction records.
                     </p>
                   </div>
                   <Link to={getPhaseLink(exportType === 'ml' ? 'ml_models' : exportType === 'forecast' ? 'forecasting' : 'anomalies')}>
                     <Button variant="outline" size="sm" className="text-xs border-amber-500/40 text-amber-300">
-                      Go to {exportType === 'ml' ? 'ML Training' : exportType === 'forecast' ? 'Forecasting' : 'Anomaly Detection'}
+                      Go to {exportType === 'ml' ? 'Predictive Modeling' : exportType === 'forecast' ? 'Forecasting' : 'Anomaly Detection'}
                       <ArrowRight className="w-3 h-3 ml-1.5" />
                     </Button>
                   </Link>

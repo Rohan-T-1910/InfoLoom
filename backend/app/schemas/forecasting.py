@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import Any, Optional
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 class TimeSeriesDateColumnInfo(BaseModel):
     name: str
@@ -93,12 +93,30 @@ class ForecastModelResponse(BaseModel):
     use_cleaned: bool
     n_historical_points: int
     metrics: dict[str, Any]
+    mape: Optional[float] = None
+    rmse: Optional[float] = None
+    model_type: Optional[str] = "ARIMA"
     model_parameters: dict[str, Any]
     historical_points: list[dict[str, Any]]
     validation_points: Optional[list[dict[str, Any]]] = None
     forecast_points: list[dict[str, Any]]
     status: str
     created_at: datetime
+
+    @model_validator(mode="after")
+    def populate_top_level_metrics(self):
+        if self.metrics and isinstance(self.metrics, dict):
+            if self.mape is None and "mape" in self.metrics:
+                try:
+                    self.mape = float(self.metrics["mape"])
+                except (ValueError, TypeError):
+                    pass
+            if self.rmse is None and "rmse" in self.metrics:
+                try:
+                    self.rmse = float(self.metrics["rmse"])
+                except (ValueError, TypeError):
+                    pass
+        return self
 
 class ForecastModelSummary(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -111,5 +129,23 @@ class ForecastModelSummary(BaseModel):
     frequency: str
     n_historical_points: int
     metrics: dict[str, Any]
+    mape: Optional[float] = None
+    rmse: Optional[float] = None
+    model_type: Optional[str] = "ARIMA"
     status: str
     created_at: datetime
+
+    @model_validator(mode="after")
+    def populate_top_level_metrics(self):
+        if self.metrics and isinstance(self.metrics, dict):
+            if self.mape is None and "mape" in self.metrics:
+                try:
+                    self.mape = float(self.metrics["mape"])
+                except (ValueError, TypeError):
+                    pass
+            if self.rmse is None and "rmse" in self.metrics:
+                try:
+                    self.rmse = float(self.metrics["rmse"])
+                except (ValueError, TypeError):
+                    pass
+        return self

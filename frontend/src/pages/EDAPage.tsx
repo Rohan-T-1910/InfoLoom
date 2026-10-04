@@ -10,17 +10,14 @@ import { EDAFeatureImportance } from '../components/eda/EDAFeatureImportance';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import { Skeleton } from '../components/ui/skeleton';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/tabs';
 import {
   BarChart3,
   RefreshCw,
   Database,
   CheckCircle2,
   Clock,
-  Sparkles,
   AlertTriangle,
   ArrowRight,
-  Filter,
   Cpu,
 } from 'lucide-react';
 
@@ -103,14 +100,11 @@ export const EDAPage: React.FC = () => {
           <div className="flex items-center gap-2">
             <h1 className="text-2xl font-bold text-white tracking-tight flex items-center gap-2.5">
               <BarChart3 className="w-6 h-6 text-purple-400" />
-              <span>Exploratory Data Analysis (EDA)</span>
+              <span>Explore Your Data</span>
             </h1>
-            <Badge variant="purple" className="text-xs">
-              Phase 3 Engine
-            </Badge>
           </div>
           <p className="text-xs text-slate-400 mt-1">
-            Autonomous statistical profiling, parametric analysis, correlation matrices, and baseline feature importance.
+            Explore trends, relationships, and the overall structure of your dataset.
           </p>
         </div>
 
@@ -151,18 +145,18 @@ export const EDAPage: React.FC = () => {
                   !useCleaned ? 'bg-purple-600 text-white font-medium shadow-sm' : 'text-slate-400 hover:text-white'
                 }`}
               >
-                Raw Data
+                Original Data
               </button>
             </div>
           )}
 
-          {/* Force Refresh Button */}
+          {/* Force Refresh & Modeling Shortcuts */}
           {effectiveId && (
             <div className="flex items-center gap-2">
               <Link to={`/models?datasetId=${effectiveId}`}>
                 <Button variant="glow" size="sm" className="text-xs h-9">
                   <Cpu className="w-3.5 h-3.5 mr-1.5" />
-                  Train ML Models
+                  Predictive Modeling
                 </Button>
               </Link>
               <Button
@@ -173,7 +167,7 @@ export const EDAPage: React.FC = () => {
                 className="text-xs h-9"
               >
                 <RefreshCw className={`w-3.5 h-3.5 mr-1.5 ${refreshMutation.isPending || isFetching ? 'animate-spin' : ''}`} />
-                Recompute EDA
+                Refresh Analysis
               </Button>
             </div>
           )}
@@ -188,7 +182,7 @@ export const EDAPage: React.FC = () => {
               <>
                 <Clock className="w-3.5 h-3.5 text-purple-400" />
                 <span className="text-slate-300">
-                  Response retrieved from <strong className="text-purple-300">EDA Persistent Cache</strong>
+                  Loaded from <strong className="text-purple-300">saved analysis</strong>
                 </span>
                 {edaData.created_at && (
                   <span className="text-slate-500 font-mono text-[11px]">
@@ -199,7 +193,7 @@ export const EDAPage: React.FC = () => {
             ) : (
               <>
                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                <span className="text-emerald-300 font-medium">Real-time Computed and Cached</span>
+                <span className="text-emerald-300 font-medium">Computed in real time</span>
               </>
             )}
           </div>
@@ -208,7 +202,7 @@ export const EDAPage: React.FC = () => {
             <span className="text-slate-400">Dataset:</span>
             <span className="font-semibold text-slate-200">{currentDataset?.original_filename}</span>
             <Badge variant={edaData.is_cleaned ? 'success' : 'secondary'} className="text-[10px] px-1.5 py-0">
-              {edaData.is_cleaned ? 'Cleaned Version' : 'Raw Version'}
+              {edaData.is_cleaned ? 'Cleaned Data' : 'Original Data'}
             </Badge>
           </div>
         </div>
@@ -217,12 +211,13 @@ export const EDAPage: React.FC = () => {
       {/* Loading State */}
       {(isLoadingDatasets || isLoadingEDA) && (
         <div className="space-y-6">
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-            {[1, 2, 3, 4, 5].map((i) => (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {[1, 2, 3, 4].map((i) => (
               <Skeleton key={i} className="h-24 w-full" />
             ))}
           </div>
-          <Skeleton className="h-96 w-full" />
+          <Skeleton className="h-44 w-full" />
+          <Skeleton className="h-80 w-full" />
           <Skeleton className="h-80 w-full" />
         </div>
       )}
@@ -233,12 +228,11 @@ export const EDAPage: React.FC = () => {
           <Database className="w-12 h-12 text-purple-400 mx-auto mb-4 opacity-70" />
           <h3 className="text-lg font-semibold text-white mb-2">No Datasets Available</h3>
           <p className="text-xs text-slate-400 mb-6 leading-relaxed">
-            To run exploratory data analysis, upload a CSV dataset into InfoLoom. Our engine will automatically ingest,
-            validate, and extract statistical profiles.
+            Upload a dataset to start exploring your data and discovering useful patterns.
           </p>
           <Link to="/datasets">
             <Button variant="glow" size="default">
-              Upload Dataset Now
+              Upload Dataset
               <ArrowRight className="w-4 h-4 ml-2" />
             </Button>
           </Link>
@@ -259,10 +253,10 @@ export const EDAPage: React.FC = () => {
         </div>
       )}
 
-      {/* EDA Main Dashboard Content */}
+      {/* EDA Main Dashboard Content: Single Coherent Scrollable View */}
       {!isLoadingEDA && edaData && (
         <div className="space-y-6">
-          {/* 1. KPIs Banner */}
+          {/* A. Dataset Health / Overview */}
           <EDAKPIs
             kpis={edaData.kpis}
             isCleaned={edaData.is_cleaned}
@@ -270,49 +264,21 @@ export const EDAPage: React.FC = () => {
             createdAt={edaData.created_at}
           />
 
-          {/* 2. Exploration Sections via Tabbed View */}
-          <Tabs defaultValue="all" className="w-full">
-            <TabsList className="w-full justify-start overflow-x-auto">
-              <TabsTrigger value="all">Complete View</TabsTrigger>
-              <TabsTrigger value="stats">Summary Statistics</TabsTrigger>
-              <TabsTrigger value="correlations">Correlation Matrix</TabsTrigger>
-              <TabsTrigger value="distributions">Distributions</TabsTrigger>
-              <TabsTrigger value="importance">Feature Importance</TabsTrigger>
-            </TabsList>
+          {/* B. What Stands Out: Key Relationships & Patterns */}
+          <EDACorrelationMatrix correlations={edaData.correlation_matrix} />
 
-            {/* Complete View (shows all modular blocks in visual flow) */}
-            <TabsContent value="all" className="space-y-6 mt-4">
-              <EDASummaryStats stats={edaData.summary_statistics} />
-              <EDACorrelationMatrix correlations={edaData.correlation_matrix} />
-              <EDADistributions distributions={edaData.distributions} />
-              <EDAFeatureImportance
-                featureImportance={edaData.feature_importance}
-                onTargetChange={handleTargetChange}
-                isLoading={isFetching}
-              />
-            </TabsContent>
+          {/* C. Dataset Fields & Column Overview */}
+          <EDASummaryStats stats={edaData.summary_statistics} />
 
-            {/* Individual Tab Views */}
-            <TabsContent value="stats">
-              <EDASummaryStats stats={edaData.summary_statistics} />
-            </TabsContent>
+          {/* D. Field Value Distribution */}
+          <EDADistributions distributions={edaData.distributions} />
 
-            <TabsContent value="correlations">
-              <EDACorrelationMatrix correlations={edaData.correlation_matrix} />
-            </TabsContent>
-
-            <TabsContent value="distributions">
-              <EDADistributions distributions={edaData.distributions} />
-            </TabsContent>
-
-            <TabsContent value="importance">
-              <EDAFeatureImportance
-                featureImportance={edaData.feature_importance}
-                onTargetChange={handleTargetChange}
-                isLoading={isFetching}
-              />
-            </TabsContent>
-          </Tabs>
+          {/* E. What Influences the Outcome? */}
+          <EDAFeatureImportance
+            featureImportance={edaData.feature_importance}
+            onTargetChange={handleTargetChange}
+            isLoading={isFetching}
+          />
         </div>
       )}
     </div>

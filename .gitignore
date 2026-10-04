@@ -54,3 +54,9 @@ Thumbs.db
 # Misc
 # =========================
 *.sqlite3
+
+# =========================
+# Runtime-generated data
+# =========================
+models_storage/
+uploads/

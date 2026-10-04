@@ -49,9 +49,16 @@ export const LoginPage: React.FC = () => {
     }
   };
 
-  const handleGuest = () => {
-    guestLogin();
-    navigate('/dashboard');
+  const handleGuest = async () => {
+    setLoading(true);
+    try {
+      await guestLogin();
+      navigate('/dashboard');
+    } catch {
+      navigate('/dashboard');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

@@ -6,7 +6,7 @@ class Settings(BaseSettings):
     DATABASE_URL: str
     JWT_SECRET_KEY: str
     JWT_ALGORITHM: str = "HS256"
-    ACCESS_TOKENS_EXPIRE_MINUTES: int = 30
+    ACCESS_TOKENS_EXPIRE_MINUTES: int = 60 * 24 * 7  # 7 days session stability
     UPLOAD_DIR: str = "uploads"
     MODELS_DIR: str = "models_storage"
     MAX_UPLOAD_SIZE_BYTES: int = 100 * 1024 * 1024  # 100 MB max file size

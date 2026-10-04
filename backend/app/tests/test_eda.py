@@ -208,3 +208,67 @@ def test_eda_multi_tenant_isolation(client: TestClient, auth_headers_user_a, aut
         headers=auth_headers_user_b,
     )
     assert res_b.status_code == 404
+
+
+RETAIL_SAMPLE_CSV = b"""Transaction ID,Customer ID,Age,Quantity,Price per Unit,Total Amount
+1,1001,25,2,50,100
+2,1002,30,1,120,120
+3,1003,45,3,40,120
+4,1004,22,4,25,100
+5,1005,38,2,80,160
+6,1006,50,1,200,200
+7,1007,29,5,30,150
+8,1008,41,2,90,180
+9,1009,35,3,60,180
+10,1010,23,1,50,50
+11,1011,48,2,110,220
+12,1012,32,4,45,180
+"""
+
+
+def test_eda_excludes_identifiers_from_correlations_and_collinearity(client: TestClient, auth_headers_user_a):
+    upload_res = client.post(
+        "/api/v1/datasets/upload",
+        headers=auth_headers_user_a,
+        files={"file": ("retail_sample.csv", io.BytesIO(RETAIL_SAMPLE_CSV), "text/csv")},
+    )
+    assert upload_res.status_code == 201
+    dataset_id = upload_res.json()["id"]
+
+    eda_res = client.get(
+        f"/api/v1/datasets/{dataset_id}/eda",
+        headers=auth_headers_user_a,
+    )
+    assert eda_res.status_code == 200
+    data = eda_res.json()
+
+    corr = data["correlation_matrix"]
+    # 1. Identifier columns must not be in correlation columns
+    assert "Transaction ID" not in corr["columns"]
+    assert "Customer ID" not in corr["columns"]
+
+    # 2. Legitimate numeric business fields must be present
+    assert "Quantity" in corr["columns"]
+    assert "Price per Unit" in corr["columns"]
+    assert "Total Amount" in corr["columns"]
+    assert "Age" in corr["columns"]
+
+    # 3. No relationships involving identifiers
+    for pair in corr.get("strong_correlations", []):
+        assert pair["feature_a"] not in ["Transaction ID", "Customer ID"]
+        assert pair["feature_b"] not in ["Transaction ID", "Customer ID"]
+
+    # 4. Warnings must NOT mention collinearity or identifiers
+    for w in corr.get("warnings", []):
+        assert "collinearity" not in w.lower()
+        assert "Transaction ID" not in w
+        assert "Customer ID" not in w
+
+    # 5. Candidate targets and feature importance must NOT include identifiers
+    fi = data.get("feature_importance")
+    if fi:
+        for tgt in fi.get("candidate_targets", []):
+            assert tgt not in ["Transaction ID", "Customer ID"]
+        assert fi["target_column"] not in ["Transaction ID", "Customer ID"]
+        for feat in fi.get("features", []):
+            assert feat["feature"] not in ["Transaction ID", "Customer ID"]

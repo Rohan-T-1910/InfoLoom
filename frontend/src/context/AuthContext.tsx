@@ -9,7 +9,7 @@ interface AuthContextType {
   login: (credentials: { email: string; password: string } | FormData) => Promise<void>;
   register: (payload: { email: string; password: string; name: string }) => Promise<void>;
   logout: () => void;
-  guestLogin: () => void;
+  guestLogin: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -33,6 +33,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setIsLoading(false);
     }
     initAuth();
+
+    const handleUnauthorized = () => {
+      api.logout();
+      setUser(null);
+    };
+    window.addEventListener('infoloom:unauthorized', handleUnauthorized);
+    return () => {
+      window.removeEventListener('infoloom:unauthorized', handleUnauthorized);
+    };
   }, []);
 
   const login = async (credentials: { email: string; password: string } | FormData) => {
@@ -55,15 +64,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(null);
   };
 
-  const guestLogin = () => {
-    // Demo guest mode
-    const demoUser: User = {
-      id: 1,
-      email: 'demo@infoloom.ai',
-      name: 'Demo Architect',
-      role: 'User',
-    };
-    setUser(demoUser);
+  const guestLogin = async () => {
+    try {
+      await api.demoLogin();
+      const me = await api.getCurrentUser();
+      setUser(me);
+    } catch (err) {
+      console.warn('Backend guest auth failed, falling back to local demo user:', err);
+      const demoUser: User = {
+        id: 1,
+        email: 'demo@infoloom.ai',
+        name: 'Demo Architect',
+        role: 'User',
+      };
+      setUser(demoUser);
+    }
   };
 
   return (

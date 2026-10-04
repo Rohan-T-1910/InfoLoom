@@ -2,13 +2,11 @@ import React from 'react';
 import { DatasetKPIs } from '../../types';
 import { Card } from '../ui/card';
 import {
-  Rows,
-  Columns,
+  Database,
+  CheckCircle2,
   AlertCircle,
   Copy,
-  Hash,
-  Binary,
-  HardDrive,
+  LayoutGrid,
 } from 'lucide-react';
 
 interface EDAKPIsProps {
@@ -18,52 +16,52 @@ interface EDAKPIsProps {
   createdAt?: string | null;
 }
 
-export const EDAKPIs: React.FC<EDAKPIsProps> = ({ kpis, isCleaned, cached, createdAt }) => {
+export const EDAKPIs: React.FC<EDAKPIsProps> = ({ kpis }) => {
+  const completenessPct = Math.max(0, +(100 - kpis.missing_percentage).toFixed(1));
+  const hasDuplicates = kpis.duplicate_rows > 0;
+  const hasMissing = kpis.missing_cells > 0;
+
   const kpiItems = [
     {
-      title: 'Total Dimensions',
-      value: `${kpis.row_count.toLocaleString()} × ${kpis.column_count}`,
-      subvalue: `${kpis.total_cells.toLocaleString()} data cells`,
-      icon: Rows,
+      title: 'Total Records',
+      value: `${kpis.row_count.toLocaleString()} rows`,
+      subvalue: `${kpis.column_count} fields (${kpis.total_cells.toLocaleString()} data points)`,
+      icon: Database,
       color: 'text-purple-400',
       bgColor: 'bg-purple-950/40',
     },
     {
-      title: 'Missing Values',
-      value: `${kpis.missing_percentage}%`,
-      subvalue: `${kpis.missing_cells.toLocaleString()} empty cells`,
-      icon: AlertCircle,
+      title: 'Data Completeness',
+      value: `${completenessPct}%`,
+      subvalue: hasMissing
+        ? `${kpis.missing_cells.toLocaleString()} empty values (${kpis.missing_percentage}%)`
+        : 'All records fully complete',
+      icon: hasMissing ? AlertCircle : CheckCircle2,
       color: kpis.missing_percentage > 5 ? 'text-amber-400' : 'text-emerald-400',
       bgColor: kpis.missing_percentage > 5 ? 'bg-amber-950/30' : 'bg-emerald-950/30',
     },
     {
-      title: 'Duplicate Rows',
-      value: `${kpis.duplicate_percentage}%`,
-      subvalue: `${kpis.duplicate_rows.toLocaleString()} exact duplicates`,
+      title: 'Duplicate Records',
+      value: hasDuplicates ? `${kpis.duplicate_rows.toLocaleString()} duplicates` : 'None',
+      subvalue: hasDuplicates
+        ? `${kpis.duplicate_percentage}% of total dataset`
+        : 'All rows are unique',
       icon: Copy,
-      color: kpis.duplicate_rows > 0 ? 'text-rose-400' : 'text-emerald-400',
-      bgColor: kpis.duplicate_rows > 0 ? 'bg-rose-950/30' : 'bg-emerald-950/30',
+      color: hasDuplicates ? 'text-amber-400' : 'text-emerald-400',
+      bgColor: hasDuplicates ? 'bg-amber-950/30' : 'bg-emerald-950/30',
     },
     {
-      title: 'Feature Split',
-      value: `${kpis.numeric_columns_count} Num / ${kpis.categorical_columns_count} Cat`,
-      subvalue: `${Math.round((kpis.numeric_columns_count / kpis.column_count) * 100)}% numeric density`,
-      icon: Binary,
+      title: 'Usable Fields',
+      value: `${kpis.column_count} Fields`,
+      subvalue: `${kpis.numeric_columns_count} numerical, ${kpis.categorical_columns_count} categorical`,
+      icon: LayoutGrid,
       color: 'text-indigo-400',
       bgColor: 'bg-indigo-950/40',
-    },
-    {
-      title: 'Memory Footprint',
-      value: kpis.memory_human,
-      subvalue: `${(kpis.memory_bytes / 1024).toFixed(1)} KB in-memory`,
-      icon: HardDrive,
-      color: 'text-slate-300',
-      bgColor: 'bg-slate-900/60',
     },
   ];
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3.5">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
       {kpiItems.map((item, idx) => {
         const Icon = item.icon;
         return (

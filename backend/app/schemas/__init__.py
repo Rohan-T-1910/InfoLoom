@@ -98,6 +98,12 @@ from app.schemas.report import (
     ReportDocumentResponse,
     CSVExportPreviewResponse,
 )
+from app.schemas.model_registry import (
+    RegisterModelRequest,
+    RollbackModelRequest,
+    RegisteredModelResponse,
+    RegisteredModelListResponse,
+)
 
 __all__ = [
     "UserBase",
@@ -177,5 +183,9 @@ __all__ = [
     "ReportReadinessResponse",
     "ReportDocumentResponse",
     "CSVExportPreviewResponse",
+    "RegisterModelRequest",
+    "RollbackModelRequest",
+    "RegisteredModelResponse",
+    "RegisteredModelListResponse",
 ]
 
